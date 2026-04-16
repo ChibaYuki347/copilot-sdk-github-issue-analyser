@@ -4,7 +4,7 @@
 
 ---
 
-## Slide 1 — Title Slide
+## Slide 1 - Title Slide
 
 **Show at**: 0:00, during intro
 
@@ -19,18 +19,18 @@
 **Agenda** (on the same slide or a quick flash):
 
 1. What is the Copilot SDK?
-2. Hello World — Your first SDK call
-3. Tools — Giving the model capabilities
+2. Hello World - Your first SDK call
+3. Tools - Giving the model capabilities
 4. Building the web UI
 5. Safety & writing back to GitHub
 
 ---
 
-## Slide 2 — What is the Copilot SDK?
+## Slide 2 - What is the Copilot SDK?
 
 **Show at**: ~0:02, during the SDK primer
 
-This is the key conceptual slide — most of the audience knows Copilot-in-editor but not the SDK.
+This is the key conceptual slide - most of the audience knows Copilot-in-editor but not the SDK.
 
 **Layout suggestion**: Two columns or a before/after visual
 
@@ -43,27 +43,27 @@ This is the key conceptual slide — most of the audience knows Copilot-in-edito
 
 **What it IS**:
 - A library you import in your code, like `requests` or `pandas`
-- Your app sends a prompt, gets back text — then your code decides what to do with it
+- Your app sends a prompt, gets back text - then your code decides what to do with it
 - You can give it tools (functions) that it can call to fetch data or take actions
-- It runs inside your app — a web server, a CLI script, a GitHub Action, a Slack bot
+- It runs inside your app - a web server, a CLI script, a GitHub Action, a Slack bot
 
 **What it is NOT**:
-- It's not a chatbot — there's no chat window unless you build one
-- It's not sentient — it generates text based on patterns, it doesn't "understand" or "want" things
-- It's not magic — it can only use the tools you explicitly give it
-- It's not autonomous — your code starts it, your code stops it, your code controls what it can access
+- It's not a chatbot - there's no chat window unless you build one
+- It's not sentient - it generates text based on patterns, it doesn't "understand" or "want" things
+- It's not magic - it can only use the tools you explicitly give it
+- It's not autonomous - your code starts it, your code stops it, your code controls what it can access
 
 **Three building blocks** (icons or simple diagram):
 
-1. **Client** — connects to the Copilot backend (like a database connection)
-2. **Session** — a conversation thread where you set the model, tools, and instructions
-3. **Tools** — regular functions you write that the model can call during execution
+1. **Client** - connects to the Copilot backend (like a database connection)
+2. **Session** - a conversation thread where you set the model, tools, and instructions
+3. **Tools** - regular functions you write that the model can call during execution
 
 **Key message**: "The SDK lets you embed Copilot into your own applications. You define what it can do. Your code stays in control."
 
 ---
 
-## Slide 3 — The Agentic Loop
+## Slide 3 - The Agentic Loop
 
 **Show at**: ~0:14, right before Phase 3 (tools) or ~0:29 before the first live analysis
 
@@ -75,18 +75,18 @@ Prompt → Model generates response → Response includes tool call → Tool exe
 
 **Visual suggestion**: A loop/cycle diagram with these nodes:
 
-1. 📝 **Prompt sent** — "Analyse this GitHub issue"
-2. 🔧 **Model requests tool call** — e.g. `get_github_issue`
-3. ⚙️ **Tool executes** — Your code runs, returns data
-4. 📖 **Result fed back** — Model receives the tool output
-5. ↩️ **Loop** — Model requests more tool calls or produces final output
-6. ✅ **Final response** — Structured assessment returned
+1. 📝 **Prompt sent** - "Analyse this GitHub issue"
+2. 🔧 **Model requests tool call** - e.g. `get_github_issue`
+3. ⚙️ **Tool executes** - Your code runs, returns data
+4. 📖 **Result fed back** - Model receives the tool output
+5. ↩️ **Loop** - Model requests more tool calls or produces final output
+6. ✅ **Final response** - Structured assessment returned
 
 **Key message**: "We don't script the sequence. The model selects tools based on what information it needs."
 
 ---
 
-## Slide 4 — What We Built (Architecture)
+## Slide 4 - What We Built (Architecture)
 
 **Show at**: ~0:58, during wrap-up (or flash briefly at ~0:39 before Phase 5)
 
@@ -122,7 +122,7 @@ A simple architecture diagram of the finished system:
 
 ---
 
-## Slide 5 — Call to Action
+## Slide 5 - Call to Action
 
 **Show at**: 1:00, during wrap-up / leave up during Q&A
 

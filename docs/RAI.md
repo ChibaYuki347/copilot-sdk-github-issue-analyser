@@ -9,7 +9,7 @@ The GitHub Issue Complexity Analyser uses the GitHub Copilot SDK to generate AI-
 - Reads publicly available GitHub issue data (title, body, labels, comments)
 - Reads publicly available repository content (file structure, source code)
 - Generates a complexity assessment with a recommended developer skill level
-- Provides all output transparently — users see every tool call and data source
+- Provides all output transparently - users see every tool call and data source
 
 ## What This Tool Does NOT Do
 
@@ -31,9 +31,9 @@ The labels "Junior", "Mid-level", "Senior", and "Senior+" refer to **familiarity
 
 ### Bias Awareness
 
-- **Issue quality bias** — Sparse or poorly written issues may appear simpler than they are. Well-documented issues with detailed descriptions may appear more complex. Teams should be aware of this when interpreting results.
-- **Language bias** — Issues written in non-English languages or with non-standard terminology may be less accurately assessed.
-- **Repository bias** — The agent explores code structure heuristically. Unconventional project layouts may lead to incomplete exploration.
+- **Issue quality bias** - Sparse or poorly written issues may appear simpler than they are. Well-documented issues with detailed descriptions may appear more complex. Teams should be aware of this when interpreting results.
+- **Language bias** - Issues written in non-English languages or with non-standard terminology may be less accurately assessed.
+- **Repository bias** - The agent explores code structure heuristically. Unconventional project layouts may lead to incomplete exploration.
 
 ### Transparency
 
@@ -44,7 +44,7 @@ The labels "Junior", "Mid-level", "Senior", and "Senior+" refer to **familiarity
 ### Data Privacy
 
 - The tool only accesses data that is already available via the GitHub REST API
-- No data is stored persistently — each analysis is a stateless request
+- No data is stored persistently - each analysis is a stateless request
 - GitHub API rate limits are respected; authenticated tokens are only used to increase rate limits, not to access private data beyond what the user already has access to
 
 ### Limitations
@@ -56,7 +56,7 @@ The labels "Junior", "Mid-level", "Senior", and "Senior+" refer to **familiarity
 
 ## Mitigation Strategies
 
-1. **Always present as "recommended" not "required"** — UI and output language frames all assessments as suggestions
-2. **Include mentorship path** — Every assessment includes guidance for less experienced developers, promoting growth
-3. **Show your work** — Full tool call transparency so users can evaluate the agent's reasoning
-4. **No automated actions** — The tool is read-only and informational; it never modifies repositories or assignments
+1. **Always present as "recommended" not "required"** - UI and output language frames all assessments as suggestions
+2. **Include mentorship path** - Every assessment includes guidance for less experienced developers, promoting growth
+3. **Show your work** - Full tool call transparency so users can evaluate the agent's reasoning
+4. **No automated actions** - The tool is read-only and informational; it never modifies repositories or assignments

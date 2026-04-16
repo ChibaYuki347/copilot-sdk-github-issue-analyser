@@ -2,11 +2,11 @@
 
 > **Livestream Demo**: Building an AI-powered issue triage tool with the GitHub Copilot SDK
 
-An intelligent issue triage tool that analyses GitHub issues in context — fetching issue details, exploring repository structure, reading source code — and produces a structured complexity assessment recommending the appropriate developer skill level for the fix.
+An intelligent issue triage tool that analyses GitHub issues in context - fetching issue details, exploring repository structure, reading source code - and produces a structured complexity assessment recommending the appropriate developer skill level for the fix.
 
 Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's capabilities.
 
-> **📌 Note**: This is a **clean version** of the project set up for public access. Planning and iteration was done in a [separate repo](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser). The key files to follow along with are the `stream_*` files — particularly [`stream_api.py`](stream_api.py) (the code we build) and [`step-by-step/stream_plan.md`](step-by-step/stream_plan.md) (the build guide).
+> **📌 Note**: This is a **clean version** of the project set up for public access. Planning and iteration was done in a [separate repo](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser). The key files to follow along with are the `stream_*` files - particularly [`stream_api.py`](stream_api.py) (the code we build) and [`step-by-step/stream_plan.md`](step-by-step/stream_plan.md) (the build guide).
 
 ---
 
@@ -17,7 +17,7 @@ Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's 
 | Resource | Description |
 |----------|-------------|
 | 📖 [Official SDK Documentation](https://github.com/github/copilot-sdk) | GitHub Copilot SDK repo and docs |
-| 🎓 [Copilot SDK for Beginners Course](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser) | *Draft* — A hands-on course teaching you to build AI agents with the SDK |
+| 🎓 [Copilot SDK for Beginners Course](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser) | *Draft* - A hands-on course teaching you to build AI agents with the SDK |
 | 🛠️ [Copilot CLI Installation](https://docs.github.com/en/copilot/github-copilot-in-the-cli) | Set up the GitHub Copilot CLI (required for the SDK) |
 
 ### What is the Copilot SDK?
@@ -32,9 +32,9 @@ Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's 
 **The SDK lets you embed Copilot into your own applications.** You define what it can do. Your code stays in control.
 
 **Three building blocks:**
-1. **Client** — connects to the Copilot backend (like a database connection)
-2. **Session** — a conversation thread where you set the model, tools, and instructions
-3. **Tools** — regular functions you write that the model can call during execution
+1. **Client** - connects to the Copilot backend (like a database connection)
+2. **Session** - a conversation thread where you set the model, tools, and instructions
+3. **Tools** - regular functions you write that the model can call during execution
 
 ---
 
@@ -46,16 +46,16 @@ Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's 
 | Real-time streaming output | ✅ (terminal) | ✅ (SSE chat UI) |
 | Tool call visibility (which files/APIs are being queried) | ✅ | ✅ |
 | Structured Markdown assessment | ✅ | ✅ (rendered) |
-| REST API for integration | — | ✅ |
+| REST API for integration | - | ✅ |
 | Post analysis back to GitHub | ✅ | ✅ |
 
 ### Copilot SDK Concepts Demonstrated
 
-- **`CopilotClient`** — session creation and lifecycle management
-- **`@define_tool`** — custom tool definitions with Pydantic parameter schemas
-- **Agentic tool calling** — Copilot autonomously invokes your Python functions to gather context
-- **Streaming event handling** — real-time processing of `assistant.message`, `tool.call`, and `session.idle` events
-- **Multi-turn tool loops** — the agent makes multiple rounds of tool calls before producing its final assessment
+- **`CopilotClient`** - session creation and lifecycle management
+- **`@define_tool`** - custom tool definitions with Pydantic parameter schemas
+- **Agentic tool calling** - Copilot autonomously invokes your Python functions to gather context
+- **Streaming event handling** - real-time processing of `assistant.message`, `tool.call`, and `session.idle` events
+- **Multi-turn tool loops** - the agent makes multiple rounds of tool calls before producing its final assessment
 
 ---
 
@@ -95,7 +95,7 @@ Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's 
 
 - **Python 3.10+**
 - **GitHub Copilot CLI** installed and authenticated ([quick guide](https://docs.github.com/en/copilot/github-copilot-in-the-cli))
-- **GitHub Token** (optional but recommended) — set `GITHUB_TOKEN` or `GH_TOKEN` for higher API rate limits
+- **GitHub Token** (optional but recommended) - set `GITHUB_TOKEN` or `GH_TOKEN` for higher API rate limits
 
 ### Setup
 
@@ -199,13 +199,13 @@ See [`step-by-step/stream_plan.md`](step-by-step/stream_plan.md) for the complet
 
 See [docs/RAI.md](docs/RAI.md) for full details. Key points:
 
-- **Not a replacement for human judgement** — the assessment is a starting point for triage discussions
-- **Skill level labels are contextual** — "Junior" and "Senior" refer to familiarity with the specific codebase
-- **No personal data processing** — only reads public GitHub issue data and repository content
-- **Full transparency** — every tool call is visible so users can see exactly what the agent examined
+- **Not a replacement for human judgement** - the assessment is a starting point for triage discussions
+- **Skill level labels are contextual** - "Junior" and "Senior" refer to familiarity with the specific codebase
+- **No personal data processing** - only reads public GitHub issue data and repository content
+- **Full transparency** - every tool call is visible so users can see exactly what the agent examined
 
 ---
 
 ## 📄 License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT - see [LICENSE](LICENSE) for details.
