@@ -6,7 +6,7 @@ An intelligent issue triage tool that analyses GitHub issues in context - fetchi
 
 Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's capabilities.
 
-> **📌 Note**: This is a **clean version** of the project set up for public access. Planning and iteration was done in a [separate repo](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser). The key files to follow along with are the `stream_*` files - particularly [`stream_api.py`](stream_api.py) (the code we build) and [`step-by-step/stream_plan.md`](step-by-step/stream_plan.md) (the build guide).
+> **📌 Note**: This is a **clean version** of the project set up for public access. Planning and iteration was done in a [separate repo](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser). The key files to follow along with are [`app.py`](app.py) (the code we build) and [`step-by-step/build-guide.md`](step-by-step/build-guide.md) (the phase-by-phase guide).
 
 ---
 
@@ -69,7 +69,7 @@ Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's 
                  │ SSE (Server-Sent Events)
                  ▼
 ┌──────────────────────────────────────────┐
-│  FastAPI Server (stream_api.py)          │
+│  FastAPI Server (app.py)          │
 │  /analyse/stream + /post-analysis        │
 │  async queue bridges SDK → SSE           │
 └────────────────┬─────────────────────────┘
@@ -120,22 +120,22 @@ export GITHUB_TOKEN=ghp_your_token_here
 
 ```bash
 # Test the SDK (Phase 2a: simplest call)
-python stream_api.py hello
+python app.py hello
 
 # Test with streaming (Phase 2b)
-python stream_api.py hello-stream
+python app.py hello-stream
 
 # Analyse an issue by URL
-python stream_api.py https://github.com/microsoft/vscode/issues/12345
+python app.py https://github.com/microsoft/vscode/issues/12345
 
 # Analyse by owner/repo/number
-python stream_api.py microsoft vscode 12345
+python app.py microsoft vscode 12345
 
 # Start the web UI
-python stream_api.py serve
+python app.py serve
 
 # Analyse and post results back to GitHub
-python stream_api.py post https://github.com/your-org/your-repo/issues/123
+python app.py post https://github.com/your-org/your-repo/issues/123
 ```
 
 ---
@@ -144,15 +144,15 @@ python stream_api.py post https://github.com/your-org/your-repo/issues/123
 
 ```
 copilot-sdk-github-issue-analyser/
-├── stream_api.py           # ⭐ Main file built during livestream (CLI + API + tools)
+├── app.py           # ⭐ Main file built during livestream (CLI + API + tools)
 ├── src/
 │   ├── issue_analyser.py   # Standalone CLI version (reference)
 │   ├── hello_world.py      # Minimal SDK example
 │   └── static/             # Pre-built web frontend (HTML/CSS/JS)
 ├── step-by-step/           # ⭐ Livestream materials
-│   ├── stream_plan.md      # ⭐ Phase-by-phase build plan (follow this!)
-│   ├── stream-slides.md    # Slide deck content
-│   └── script_stream.md    # Full script with code snippets
+│   ├── build-guide.md      # ⭐ Phase-by-phase build plan (follow this!)
+│   ├── slides.md    # Slide deck content
+│   └── script.md    # Full script with code snippets
 ├── docs/
 │   ├── RAI.md              # Responsible AI notes
 │   └── architecture.md     # Architecture details
@@ -161,7 +161,7 @@ copilot-sdk-github-issue-analyser/
 └── README.md               # This file
 ```
 
-> **💡 Key files**: The `stream_*` files are the primary learning resources. `stream_api.py` is the code built during the stream, and `step-by-step/stream_plan.md` is the phase-by-phase guide.
+> **💡 Key files**: `app.py` is the code built during the livestream, and `step-by-step/build-guide.md` is the phase-by-phase guide.
 
 ---
 
@@ -182,7 +182,7 @@ The tool was built in **6 phases** during a 60-minute livestream:
 
 **Wrap-up**: 0:58–1:00 · **Q&A**: 1:00–1:15
 
-See [`step-by-step/stream_plan.md`](step-by-step/stream_plan.md) for the complete phase-by-phase guide with code.
+See [`step-by-step/build-guide.md`](step-by-step/build-guide.md) for the complete phase-by-phase guide with code.
 
 ---
 

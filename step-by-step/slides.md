@@ -100,7 +100,7 @@ A simple architecture diagram of the finished system:
                  │ SSE (Server-Sent Events)
                  ▼
 ┌──────────────────────────────────────────┐
-│  FastAPI Server (stream_api.py)          │
+│  FastAPI Server (app.py)          │
 │  /analyse/stream + /post-analysis        │
 │  async queue bridges SDK → SSE           │
 └────────────────┬─────────────────────────┘
@@ -131,7 +131,7 @@ A simple architecture diagram of the finished system:
 | **Course** | Link to `github.com/reneenoble/github-copilot-sdk-for-beginners` |
 | **This repo** | Link to the stream's repo (if public) |
 | **Docs** | Link to Copilot SDK documentation |
-| **Try it** | "Clone the repo, set a GITHUB_TOKEN, run `python stream_api.py serve`" |
+| **Try it** | "Clone the repo, set a GITHUB_TOKEN, run `python app.py serve`" |
 
 **Optional extras**:
 - QR code for the course link (easy for mobile viewers to scan)

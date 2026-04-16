@@ -1,7 +1,7 @@
 # Livestream Plan - Building an AI Issue Triage Tool with the GitHub Copilot SDK
 
 **Duration**: 60 min build + 15 min Q&A
-**File built during stream**: `stream_api.py` (single file, top to bottom)
+**File built during stream**: `app.py` (single file, top to bottom)
 **Frontend**: Pre-built in `src/static/` (HTML/CSS/JS chat UI)
 
 ---
@@ -44,7 +44,7 @@ Have 1-2 GitHub issue URLs bookmarked to use during live demos (something with m
 
 ### 6. Empty starter file
 
-Start the stream with an empty `stream_api.py` open in the editor.
+Start the stream with an empty `app.py` open in the editor.
 
 ---
 
@@ -56,15 +56,15 @@ Start the stream with an empty `stream_api.py` open in the editor.
 
 ```python
 """
-stream_api.py - GitHub Issue Complexity Analyser
+app.py - GitHub Issue Complexity Analyser
 
 Built step-by-step during the livestream. Frontend is pre-built in src/static/.
 
 Usage:
-  python stream_api.py hello                          # Phase 2: Test the SDK
-  python stream_api.py <github_issue_url>             # Phase 4: CLI analysis
-  python stream_api.py <owner> <repo> <issue_number>  # Phase 4: CLI analysis
-  python stream_api.py serve                          # Phase 5: Start web UI
+  python app.py hello                          # Phase 2: Test the SDK
+  python app.py <github_issue_url>             # Phase 4: CLI analysis
+  python app.py <owner> <repo> <issue_number>  # Phase 4: CLI analysis
+  python app.py serve                          # Phase 5: Start web UI
 """
 
 import asyncio
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 ### Live demo
 
 ```bash
-python stream_api.py hello
+python app.py hello
 ```
 
 > **Key concept**: `send_and_wait()` blocks until the full response is ready, then gives you everything at once. Three steps: create client, create session, send and wait. That's it.
@@ -153,7 +153,7 @@ async def hello_world_streaming():
 ### Live demo
 
 ```bash
-python stream_api.py hello-stream
+python app.py hello-stream
 ```
 
 > **Key concept**: Three event types to know - `assistant.message` (content tokens), `tool.call` (the agent used a tool), `session.idle` (the agent is done). This is the pattern we'll use for the rest of the stream.
@@ -388,9 +388,9 @@ def parse_github_url(url: str) -> tuple[str, str, int]:
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python stream_api.py hello")
-        print("  python stream_api.py <github_issue_url>")
-        print("  python stream_api.py <owner> <repo> <issue_number>")
+        print("  python app.py hello")
+        print("  python app.py <github_issue_url>")
+        print("  python app.py <owner> <repo> <issue_number>")
         sys.exit(0)
 
     cmd = sys.argv[1]
@@ -406,7 +406,7 @@ if __name__ == "__main__":
 ### Live demo
 
 ```bash
-python stream_api.py https://github.com/<OWNER>/<REPO>/issues/<NUMBER>
+python app.py https://github.com/<OWNER>/<REPO>/issues/<NUMBER>
 ```
 
 > **Key moment**: Watch the terminal - the agent fetches the issue, browses the repo, reads files, then produces its analysis. "We didn't script that sequence - the agent figured it out."
@@ -539,10 +539,10 @@ Add the `serve` option to the if/elif block:
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("🐛 GitHub Issue Complexity Analyser - Livestream Build\n")
-        print("  python stream_api.py hello                          # Test the SDK")
-        print("  python stream_api.py <github_issue_url>             # CLI analysis")
-        print("  python stream_api.py <owner> <repo> <issue_number>  # CLI analysis")
-        print("  python stream_api.py serve                          # Web UI")
+        print("  python app.py hello                          # Test the SDK")
+        print("  python app.py <github_issue_url>             # CLI analysis")
+        print("  python app.py <owner> <repo> <issue_number>  # CLI analysis")
+        print("  python app.py serve                          # Web UI")
         sys.exit(0)
 
     cmd = sys.argv[1]
@@ -565,7 +565,7 @@ if __name__ == "__main__":
 ### Live demo
 
 ```bash
-python stream_api.py serve
+python app.py serve
 # Open http://127.0.0.1:8000
 # Paste a GitHub issue URL → watch the chat UI stream in real time
 ```
@@ -582,9 +582,9 @@ python stream_api.py serve
 
 > **Talking points**: "We've been read-only so far. But what if we want to close the loop - post the analysis as a comment on the issue, and add a difficulty label? That's just two API calls."
 
-**Don't live-code this** - scroll to it in `stream_api.py`, talk through what it does, then run the demo.
+**Don't live-code this** - scroll to it in `app.py`, talk through what it does, then run the demo.
 
-### Code to show (already in `stream_api.py`)
+### Code to show (already in `app.py`)
 
 ```python
 SKILL_LABELS = {
@@ -642,7 +642,7 @@ async def analyse_and_post(owner: str, repo: str, issue_number: int):
 ### Live demo
 
 ```bash
-python stream_api.py post https://github.com/<OWNER>/<REPO>/issues/<NUMBER>
+python app.py post https://github.com/<OWNER>/<REPO>/issues/<NUMBER>
 ```
 
 > After it runs, switch to the browser and show the comment + label on the issue. "The agent analysed the issue, posted its review, and labelled it - all from one command."
@@ -655,7 +655,7 @@ python stream_api.py post https://github.com/<OWNER>/<REPO>/issues/<NUMBER>
 
 **Don't live-code this** - just scroll to the commented-out code and talk through it.
 
-### Code to show (already commented out in `stream_api.py`)
+### Code to show (already commented out in `app.py`)
 
 ```python
 async def validate_tool_args(event):
