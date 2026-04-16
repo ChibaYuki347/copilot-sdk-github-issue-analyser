@@ -6,6 +6,8 @@ An intelligent issue triage tool that analyses GitHub issues in context — fetc
 
 Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's capabilities.
 
+> **📌 Note**: This is a **clean version** of the project set up for public access. Planning and iteration was done in a [separate repo](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser). The key files to follow along with are the `stream_*` files — particularly [`stream_api.py`](stream_api.py) (the code we build) and [`step-by-step/stream_plan.md`](step-by-step/stream_plan.md) (the build guide).
+
 ---
 
 ## 📚 Learning Resources
@@ -142,13 +144,13 @@ python stream_api.py post https://github.com/your-org/your-repo/issues/123
 
 ```
 copilot-sdk-github-issue-analyser/
-├── stream_api.py           # Main file built during livestream (CLI + API + tools)
+├── stream_api.py           # ⭐ Main file built during livestream (CLI + API + tools)
 ├── src/
 │   ├── issue_analyser.py   # Standalone CLI version (reference)
 │   ├── hello_world.py      # Minimal SDK example
 │   └── static/             # Pre-built web frontend (HTML/CSS/JS)
-├── step-by-step/           # Livestream materials
-│   ├── stream_plan.md      # Phase-by-phase build plan
+├── step-by-step/           # ⭐ Livestream materials
+│   ├── stream_plan.md      # ⭐ Phase-by-phase build plan (follow this!)
 │   ├── stream-slides.md    # Slide deck content
 │   └── script_stream.md    # Full script with code snippets
 ├── docs/
@@ -158,6 +160,8 @@ copilot-sdk-github-issue-analyser/
 ├── AGENTS.md               # Agent instructions for Copilot
 └── README.md               # This file
 ```
+
+> **💡 Key files**: The `stream_*` files are the primary learning resources. `stream_api.py` is the code built during the stream, and `step-by-step/stream_plan.md` is the phase-by-phase guide.
 
 ---
 
