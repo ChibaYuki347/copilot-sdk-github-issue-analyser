@@ -176,8 +176,11 @@ The tool was built in **6 phases** during a 60-minute livestream:
 | 2b | 0:08–0:14 | Streaming with events |
 | 3 | 0:14–0:29 | Custom tools (`@define_tool`) |
 | 4 | 0:29–0:39 | System prompt + CLI analyser |
-| 5 | 0:39–0:54 | FastAPI + Server-Sent Events |
-| 6 | 0:54–0:58 | Write back to GitHub + safety |
+| 5 | 0:39–0:52 | FastAPI + Server-Sent Events |
+| 6a | 0:52–0:55 | Write back to GitHub |
+| 6b | 0:55–0:58 | Safety hooks (talk only) |
+
+**Wrap-up**: 0:58–1:00 · **Q&A**: 1:00–1:15
 
 See [`step-by-step/stream_plan.md`](step-by-step/stream_plan.md) for the complete phase-by-phase guide with code.
 
