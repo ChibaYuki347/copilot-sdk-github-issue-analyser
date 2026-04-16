@@ -144,18 +144,17 @@ python app.py post https://github.com/your-org/your-repo/issues/123
 
 ```
 copilot-sdk-github-issue-analyser/
-├── app.py           # ⭐ Main file built during livestream (CLI + API + tools)
+├── app.py                  # ⭐ Main file built during livestream (CLI + API + tools)
 ├── src/
-│   ├── issue_analyser.py   # Standalone CLI version (reference)
-│   ├── hello_world.py      # Minimal SDK example
+│   ├── hello_world.py      # Minimal SDK example (start here!)
 │   └── static/             # Pre-built web frontend (HTML/CSS/JS)
 ├── step-by-step/           # ⭐ Livestream materials
 │   ├── build-guide.md      # ⭐ Phase-by-phase build plan (follow this!)
-│   ├── slides.md    # Slide deck content
-│   └── script.md    # Full script with code snippets
+│   ├── slides.md           # Slide deck content
+│   └── script.md           # Full script with code snippets
 ├── docs/
 │   ├── RAI.md              # Responsible AI notes
-│   └── architecture.md     # Architecture details
+│   └── architecture.png    # Architecture diagram
 ├── pyproject.toml          # Python dependencies
 ├── AGENTS.md               # Agent instructions for Copilot
 └── README.md               # This file
