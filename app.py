@@ -337,6 +337,13 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
     )
 
     queue = asyncio.Queue()
+    usage = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "premium_requests": 0,
+        "tool_calls": 0,
+        "model": None,
+    }
 
     def on_event(event):
         name = event.type.value if hasattr(event.type, "value") else str(event.type)
@@ -350,7 +357,33 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             tool_name = getattr(event.data, "tool_name", None) or getattr(event.data, "name", None)
             args = _parse_args(getattr(event.data, "arguments", None))
             if tool_name:
+                usage["tool_calls"] += 1
                 queue.put_nowait(("tool_call", {"name": tool_name, "args": args}))
+
+        elif name == "assistant.usage":
+            data = event.data
+            input_tokens = getattr(data, "input_tokens", 0) or 0
+            output_tokens = getattr(data, "output_tokens", 0) or 0
+            model = getattr(data, "model", None)
+
+            usage["input_tokens"] += input_tokens
+            usage["output_tokens"] += output_tokens
+            usage["premium_requests"] += 1
+            if model:
+                usage["model"] = model
+
+            queue.put_nowait((
+                "usage",
+                {
+                    "input_tokens": usage["input_tokens"],
+                    "output_tokens": usage["output_tokens"],
+                    "model": usage["model"],
+                },
+            ))
+            queue.put_nowait((
+                "premium_request",
+                {"premium_requests": usage["premium_requests"]},
+            ))
 
         elif name == "session.idle":
             queue.put_nowait(("done", None))
@@ -366,8 +399,15 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             yield f"event: message\ndata: {json.dumps({'content': data})}\n\n"
         elif event_type == "tool_call":
             yield f"event: tool_call\ndata: {json.dumps(data)}\n\n"
+        elif event_type == "usage":
+            yield f"event: usage\ndata: {json.dumps(data)}\n\n"
+        elif event_type == "premium_request":
+            yield f"event: premium_request\ndata: {json.dumps(data)}\n\n"
         elif event_type == "done":
-            yield f"event: done\ndata: {json.dumps({'status': 'complete'})}\n\n"
+            yield (
+                f"event: done\ndata: "
+                f"{json.dumps({'status': 'complete', **usage})}\n\n"
+            )
             break
 
     await session.disconnect()
