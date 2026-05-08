@@ -1,9 +1,9 @@
 [project]
 name = "gh-copilot-sdk-repo-analyser"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "github-copilot-sdk @ git+https://github.com/github/copilot-sdk.git#subdirectory=python",
+    "github-copilot-sdk>=0.3.0",
     "asyncio",
     "httpx",
     "pydantic",

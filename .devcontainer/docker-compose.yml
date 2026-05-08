@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: copilot-sdk-analyser-dev
+    image: mcr.microsoft.com/devcontainers/python:2-3.13-bullseye
+    env_file:
+      - ../.env
+    volumes:
+      - ..:/workspace:cached
+    command: /bin/sh -c "while sleep 1000; do :; done"

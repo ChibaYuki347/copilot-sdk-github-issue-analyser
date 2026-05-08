@@ -91,30 +91,84 @@ Built during a **60-minute livestream** to demonstrate the GitHub Copilot SDK's 
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: GitHub Codespaces (recommended for the stream)
 
+The easiest way to get started — everything is pre-configured in the devcontainer.
+
+1. Click **Code** → **Codespaces** → **Create codespace on main**
+2. When prompted, enter your **GitHub personal access token** (the Codespace will ask for it automatically)
+3. Wait for the setup to finish — Python, dependencies, and the Copilot SDK are all installed for you
+4. You're ready to go!
+
+### Option 2: Local Dev Container
+
+For a Codespaces-like experience locally with full isolation:
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop)
+2. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension in VS Code
+3. Open this folder in VS Code → click "Reopen in Container" (bottom-left)
+4. VS Code builds the container from `docker-compose.yml` and automatically:
+   - Loads your `.env` file with `GITHUB_TOKEN`
+   - Installs Python and dependencies
+   - Sets up the GitHub CLI extension
+5. You're ready to go!
+
+<details>
+<summary><b>New to Dev Containers?</b> Click to expand.</summary>
+
+Dev Containers let you develop inside a Docker container as if it were your local machine. All your tools, dependencies, and environment variables are isolated and reproducible.
+
+- **[Dev Containers Documentation](https://containers.dev/)** — Official spec and guides
+- **[VS Code Remote Development](https://code.visualstudio.com/docs/remote/remote-overview)** — How to use with VS Code
+- **Benefits**: Consistent environments across team, no "works on my machine" problems, easy onboarding
+
+For this project, you don't need to understand Docker internals—just think of it as "VS Code in a sandboxed environment that has everything pre-installed."
+
+</details>
+
+### Option 3: Local Python (No Container)
+
+For a quick local setup without containerization:
+
+Prerequisites:
 - **Python 3.10+**
-- **GitHub Copilot CLI** installed and authenticated ([quick guide](https://docs.github.com/en/copilot/github-copilot-in-the-cli))
-- **GitHub Token** (optional but recommended) - set `GITHUB_TOKEN` or `GH_TOKEN` for higher API rate limits
+- **[uv](https://docs.astral.sh/uv/)** (Python package manager)
+- **GitHub Token** — needed for API access and Copilot SDK auth
 
-### Setup
+#### Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/reneenoble/copilot-sdk-github-issue-analyser-.git
 cd copilot-sdk-github-issue-analyser-
 
-# Create a virtual environment
-python -m venv .venv
-source .venv/bin/activate  # macOS/Linux
-# .venv\Scripts\activate   # Windows
+# Create .env file with your GitHub token
+cp .env.example .env
+# Then edit .env and add your token:
+#   GITHUB_TOKEN=ghp_your_token_here
 
 # Install dependencies
-pip install -e .
+uv sync
 
-# (Optional) Set GitHub token for higher rate limits
+# Alternatively, export the token in your shell
 export GITHUB_TOKEN=ghp_your_token_here
 ```
+
+### Getting a GitHub Token
+
+All three options require a GitHub personal access token. Create one with the correct permissions:
+
+1. Go to **github.com** → your profile picture (top right) → **Settings**
+2. Scroll down left sidebar → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
+3. Click **Generate new token**
+   - Name: `copilot-sdk-stream` (or similar)
+   - Expiration: 7 days (sufficient for a demo)
+   - Repository access: **All repositories**
+   - Permissions:
+     - **Issues**: Read and Write
+     - **Contents**: Read
+4. Click **Generate token** and copy it
+5. Add to `.env`: `GITHUB_TOKEN=ghp_...` (or export as shown above)
 
 ### Usage
 
@@ -148,10 +202,13 @@ copilot-sdk-github-issue-analyser/
 ├── src/
 │   ├── hello_world.py      # Minimal SDK example (start here!)
 │   └── static/             # Pre-built web frontend (HTML/CSS/JS)
-├── step-by-step/           # ⭐ Livestream materials
-│   ├── build-guide.md      # ⭐ Phase-by-phase build plan (follow this!)
-│   ├── slides.md           # Slide deck content
-│   └── script.md           # Full script with code snippets
+├── step-by-step/
+│   └── build-guide.md      # ⭐ Phase-by-phase build plan (follow this!)
+├── presenter-resources/    # ⭐ Presenter-only materials
+│   ├── LIVESTREAM_PREP.md
+│   ├── pre-stream-check.sh
+│   ├── script.md
+│   └── AI_Genius_Copilot_SDK_Ep3_EN.pdf
 ├── docs/
 │   ├── RAI.md              # Responsible AI notes
 │   └── architecture.png    # Architecture diagram
@@ -182,6 +239,58 @@ The tool was built in **6 phases** during a 60-minute livestream:
 **Wrap-up**: 0:58–1:00 · **Q&A**: 1:00–1:15
 
 See [`step-by-step/build-guide.md`](step-by-step/build-guide.md) for the complete phase-by-phase guide with code.
+
+---
+
+## 🎥 Livestream Presenter Setup
+
+If you're presenting this livestream, **refer to the [`presenter-resources/`](presenter-resources/) folder** for all presenter materials, including:
+- **[`LIVESTREAM_PREP.md`](presenter-resources/LIVESTREAM_PREP.md)** — Complete setup checklist and timeline
+- **[`pre-stream-check.sh`](presenter-resources/pre-stream-check.sh)** — Automated environment verification script
+- **[`AI_Genius_Copilot_SDK_Ep3_EN.pdf`](presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf)** — Presentation deck (PDF)
+- **[`script.md`](presenter-resources/script.md)** — Detailed 60-minute talking points and demo script
+
+### Quick Start: Before You Go Live (30 min prep)
+
+```bash
+# 1. Create a fresh GitHub token (expires in 7 days)
+#    Go to: https://github.com/settings/tokens?type=beta
+#    Permissions: Issues (read/write), Contents (read)
+
+# 2. Add token to .env file
+cp .env.example .env
+# Edit .env and paste your token
+
+# 3. Run pre-stream check
+bash presenter-resources/pre-stream-check.sh
+
+# 4. Full setup and timeline: see presenter-resources/LIVESTREAM_PREP.md
+```
+
+### Screen Layout for Streaming
+
+Arrange your screen so viewers can see:
+1. **VS Code** (editor) — left side with `app.py` open
+2. **Terminal** (output) — bottom with live execution
+3. **Browser** (optional) — right side with `http://localhost:8000` for Phase 5 demo
+4. **Slide deck (PDF)** — `presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf` (off-screen or second monitor)
+
+### Key Demos to Prepare
+
+| Phase | Demo | Expected Output |
+|-------|------|---|
+| 2a | `python app.py hello` | 2-sentence answer about the SDK |
+| 2b | `python app.py hello-stream` | Same answer, streamed token-by-token |
+| 4 | `python app.py <issue_url>` | Full analysis with tool calls printed |
+| 5 | Open `http://localhost:8000` → paste issue URL → watch stream in browser | Chat UI with animated tool calls |
+| 6 | Check issue on GitHub | New comment posted + difficulty label added |
+
+### Troubleshooting
+
+- **"GITHUB_TOKEN not found"** → Check `.env` file or `export GITHUB_TOKEN=...`
+- **"Rate limit exceeded"** → Your token isn't being read; verify `GITHUB_TOKEN` is set
+- **"Model not available"** → Verify you have Copilot access; check with `copilot --version`
+- **Browser won't connect to SSE** → Try `http://127.0.0.1:8000` instead of `localhost`
 
 ---
 

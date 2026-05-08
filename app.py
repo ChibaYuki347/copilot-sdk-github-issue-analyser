@@ -25,6 +25,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 from copilot import CopilotClient, define_tool
+from copilot.session import PermissionHandler
 
 
 # =================================================================
@@ -39,11 +40,17 @@ async def hello_world():
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4.1"})
-    response = await session.send_and_wait({"prompt": "What is the GitHub Copilot SDK in 2 sentences?"})
-    print(response.data.content)
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
+    response = await session.send_and_wait("What is the GitHub Copilot SDK in 2 sentences?")
+    if response and getattr(response, "data", None) and hasattr(response.data, "content"):
+        print(response.data.content)
 
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 
 
@@ -60,7 +67,12 @@ async def hello_world_streaming():
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4.1"})
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     done = asyncio.Event()
 
@@ -71,11 +83,11 @@ async def hello_world_streaming():
             done.set()
 
     session.on(on_event)
-    await session.send({"prompt": "What is the GitHub Copilot SDK in 2 sentences?"})
+    await session.send("What is the GitHub Copilot SDK in 2 sentences?")
     await done.wait()
 
     print()
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 
 
@@ -244,11 +256,13 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({
-        "model": "gpt-4.1",
-        "tools": TOOLS,
-        "instructions": SYSTEM_PROMPT,
-    })
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     done = asyncio.Event()
 
@@ -263,13 +277,13 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
             done.set()
 
     session.on(on_event)
-    await session.send({
-        "prompt": f"Please analyse GitHub issue #{issue_number} in {owner}/{repo}."
-    })
+    await session.send(
+        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+    )
     await done.wait()
 
     print("\n")
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 
 
@@ -321,11 +335,13 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({
-        "model": "gpt-4.1",
-        "tools": TOOLS,
-        "instructions": SYSTEM_PROMPT,
-    })
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     queue = asyncio.Queue()
 
@@ -349,9 +365,9 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             queue.put_nowait(("done", None))
 
     session.on(on_event)
-    await session.send({
-        "prompt": f"Please analyse GitHub issue #{issue_number} in {owner}/{repo}."
-    })
+    await session.send(
+        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+    )
 
     while True:
         event_type, data = await queue.get()
@@ -363,7 +379,7 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             yield f"event: done\ndata: {json.dumps({'status': 'complete'})}\n\n"
             break
 
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 
 
@@ -454,11 +470,13 @@ async def analyse_and_post(owner: str, repo: str, issue_number: int):
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({
-        "model": "gpt-4.1",
-        "tools": TOOLS,
-        "instructions": SYSTEM_PROMPT,
-    })
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     done = asyncio.Event()
     response_parts = []
@@ -476,11 +494,11 @@ async def analyse_and_post(owner: str, repo: str, issue_number: int):
             done.set()
 
     session.on(on_event)
-    await session.send({
-        "prompt": f"Please analyse GitHub issue #{issue_number} in {owner}/{repo}."
-    })
+    await session.send(
+        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+    )
     await done.wait()
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 
     analysis = "".join(response_parts)
