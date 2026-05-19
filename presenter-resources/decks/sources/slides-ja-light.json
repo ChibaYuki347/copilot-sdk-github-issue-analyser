@@ -1,0 +1,140 @@
+{
+  "theme": "light",
+  "title": "GitHub Copilot SDK で AI Issue トリアージツールを構築する",
+  "author": "Original by Renee Noble / 日本語版 @ChibaYuki347",
+  "totalPages": 5,
+  "slides": [
+    {
+      "layout": "title",
+      "variant": "dark-circles",
+      "content": {
+        "eyebrow": "GITHUB COPILOT SDK",
+        "title": "GitHub Copilot SDK で AI Issue トリアージツールを構築する",
+        "subtitle": "空のファイルからストリーミング Web アプリへ、75 分で",
+        "meta": "Original by Renee Noble · 日本語版 @ChibaYuki347 (MIT License)"
+      }
+    },
+    {
+      "layout": "content",
+      "variant": "2col",
+      "content": {
+        "title": "Copilot SDK とは？",
+        "sub": "エディタ内 Copilot との違いを 2 列で比較",
+        "cards": [
+          {
+            "title": "エディタ内の Copilot",
+            "sub": "開発者向けツール",
+            "items": [
+              "VS Code / JetBrains 等に組み込まれている",
+              "入力中にコードを提案する",
+              "画面上で結果を見るだけ"
+            ]
+          },
+          {
+            "title": "Copilot SDK",
+            "sub": "アプリケーションの構成要素",
+            "items": [
+              "Python / JS / C# のライブラリとして import",
+              "あなたのアプリが他ライブラリと同様に呼び出す",
+              "結果は あなたのコードが受け取り、次の挙動を決める",
+              "Client → Session → Tools の 3 要素"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "layout": "timeline",
+      "variant": "horizontal",
+      "content": {
+        "title": "エージェント型ループ",
+        "sub": "プロンプト → ツール呼び出し → 結果 → モデル再評価 のサイクル",
+        "stages": [
+          { "label": "STEP 1", "title": "プロンプト送信", "desc": "「この Issue を解析してください」" },
+          { "label": "STEP 2", "title": "ツール呼び出し要求", "desc": "例: get_github_issue" },
+          { "label": "STEP 3", "title": "ツール実行", "desc": "あなたのコードがデータを返す" },
+          { "label": "STEP 4", "title": "モデル再評価", "desc": "結果を読んで次の手を決める" },
+          { "label": "STEP 5", "title": "ループ or 完了", "desc": "必要なら追加のツール呼び出し" },
+          { "label": "STEP 6", "title": "最終出力", "desc": "構造化された複雑さ評価" }
+        ],
+        "footer": "シーケンスはスクリプトで固定しない。モデルが必要に応じて選択する。"
+      }
+    },
+    {
+      "layout": "content",
+      "variant": "2x2",
+      "content": {
+        "title": "構築したもの (アーキテクチャ)",
+        "sub": "1 つのファイルに 4 層、SDK が中央で UI とモデルを橋渡し",
+        "cards": [
+          {
+            "title": "① ブラウザ",
+            "sub": "ビルド済みフロントエンド",
+            "items": [
+              "EventSource で SSE を受信",
+              "チャットバブルを順次描画",
+              "src/static/ に格納"
+            ]
+          },
+          {
+            "title": "② FastAPI サーバー",
+            "sub": "app.py",
+            "items": [
+              "/api/analyse + /api/post-analysis",
+              "非同期キューが SDK → SSE を橋渡し",
+              "LANG=ja で日本語応答"
+            ]
+          },
+          {
+            "title": "③ Copilot SDK + モデル",
+            "sub": "gpt-4.1",
+            "items": [
+              "Client / Session / Tools",
+              "レスポンスとツール呼び出しを生成",
+              "Streaming イベントで返す"
+            ]
+          },
+          {
+            "title": "④ GitHub REST API",
+            "sub": "データ層",
+            "items": [
+              "Issues / Contents / Code Search",
+              "GITHUB_TOKEN で認証",
+              "PostComment / AddLabels に書き戻し"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "layout": "resources",
+      "content": {
+        "title": "次のアクション",
+        "sub": "リポジトリを clone して、ご自身のリポジトリの Issue で試してみてください",
+        "items": [
+          {
+            "title": "コース教材 (英語版)",
+            "url": "github.com/reneenoble/github-copilot-sdk-for-beginners",
+            "sub": "Renee Noble さんが作成したオリジナルのワークショップ"
+          },
+          {
+            "title": "本日のリポジトリ (日本語ブランチ)",
+            "url": "github.com/ChibaYuki347/copilot-sdk-github-issue-analyser/tree/ja",
+            "sub": "step-by-step/script.ja.md にライブ配信のスクリプト全文"
+          },
+          {
+            "title": "Copilot SDK ドキュメント",
+            "url": "github.com/github/copilot-sdk",
+            "sub": "公式ドキュメント"
+          },
+          {
+            "title": "起動コマンド",
+            "url": "APP_LANG=ja python app.py serve",
+            "sub": "http://localhost:8000/?lang=ja で日本語 UI"
+          }
+        ],
+        "footer": "リポジトリに star を付けていただけると、より多くの方に届きます ⭐"
+      }
+    }
+  ]
+}

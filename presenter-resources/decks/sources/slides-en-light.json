@@ -1,0 +1,140 @@
+{
+  "theme": "light",
+  "title": "Building an AI Issue Triage Tool with the GitHub Copilot SDK",
+  "author": "Renee Noble — Original workshop",
+  "totalPages": 5,
+  "slides": [
+    {
+      "layout": "title",
+      "variant": "dark-circles",
+      "content": {
+        "eyebrow": "GITHUB COPILOT SDK",
+        "title": "Building an AI Issue Triage Tool with the GitHub Copilot SDK",
+        "subtitle": "From empty file to streaming web app in 60 minutes",
+        "meta": "By Renee Noble · MIT License"
+      }
+    },
+    {
+      "layout": "content",
+      "variant": "2col",
+      "content": {
+        "title": "What is the Copilot SDK?",
+        "sub": "Editor Copilot vs the SDK — a side-by-side comparison",
+        "cards": [
+          {
+            "title": "Copilot in your editor",
+            "sub": "A tool for developers",
+            "items": [
+              "Built into VS Code, JetBrains, etc.",
+              "Suggests code while you type",
+              "You see the results on screen"
+            ]
+          },
+          {
+            "title": "The Copilot SDK",
+            "sub": "A building block for applications",
+            "items": [
+              "A Python / JS / C# library you install",
+              "Your app calls it like any other library",
+              "Your code receives results and decides next steps",
+              "Three parts: Client → Session → Tools"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "layout": "timeline",
+      "variant": "horizontal",
+      "content": {
+        "title": "The Agentic Loop",
+        "sub": "Prompt → tool call → result → model re-evaluates",
+        "stages": [
+          { "label": "STEP 1", "title": "Prompt sent", "desc": "\"Analyse this issue\"" },
+          { "label": "STEP 2", "title": "Tool requested", "desc": "e.g. get_github_issue" },
+          { "label": "STEP 3", "title": "Tool executes", "desc": "Your code returns data" },
+          { "label": "STEP 4", "title": "Result fed back", "desc": "Model reads and decides" },
+          { "label": "STEP 5", "title": "Loop or finish", "desc": "More tools if needed" },
+          { "label": "STEP 6", "title": "Final response", "desc": "Structured assessment" }
+        ],
+        "footer": "We don't script the sequence — the model picks tools based on what it needs."
+      }
+    },
+    {
+      "layout": "content",
+      "variant": "2x2",
+      "content": {
+        "title": "What we built (Architecture)",
+        "sub": "One file, four layers, SDK in the middle",
+        "cards": [
+          {
+            "title": "① Browser",
+            "sub": "Pre-built frontend",
+            "items": [
+              "EventSource receives SSE",
+              "Renders chat bubbles in real-time",
+              "Lives in src/static/"
+            ]
+          },
+          {
+            "title": "② FastAPI Server",
+            "sub": "app.py",
+            "items": [
+              "/api/analyse + /api/post-analysis",
+              "Async queue bridges SDK → SSE",
+              "LANG=ja switches to Japanese mode"
+            ]
+          },
+          {
+            "title": "③ Copilot SDK + Model",
+            "sub": "gpt-4.1",
+            "items": [
+              "Client / Session / Tools",
+              "Generates responses + tool calls",
+              "Streams events back"
+            ]
+          },
+          {
+            "title": "④ GitHub REST API",
+            "sub": "Data layer",
+            "items": [
+              "Issues / Contents / Code Search",
+              "Auth via GITHUB_TOKEN",
+              "Writes back PostComment / AddLabels"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "layout": "resources",
+      "content": {
+        "title": "Next Actions",
+        "sub": "Clone the repo and try it on your own issues",
+        "items": [
+          {
+            "title": "Workshop course (original)",
+            "url": "github.com/reneenoble/github-copilot-sdk-for-beginners",
+            "sub": "The original workshop by Renee Noble"
+          },
+          {
+            "title": "Today's repo (JA branch)",
+            "url": "github.com/ChibaYuki347/copilot-sdk-github-issue-analyser/tree/ja",
+            "sub": "Localized branch with step-by-step/script.ja.md"
+          },
+          {
+            "title": "Copilot SDK docs",
+            "url": "github.com/github/copilot-sdk",
+            "sub": "Official documentation"
+          },
+          {
+            "title": "Run command",
+            "url": "python app.py serve",
+            "sub": "Then visit http://localhost:8000/"
+          }
+        ],
+        "footer": "Star the repo to help others find it ⭐"
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "theme": "light",
+  "theme": "dark",
   "title": "GitHub Copilot SDK で AI Issue トリアージツールを構築する",
   "author": "Original by Renee Noble / 日本語版 @ChibaYuki347",
   "totalPages": 5,
@@ -24,7 +24,6 @@
           {
             "title": "エディタ内の Copilot",
             "sub": "開発者向けツール",
-            "color": "muted",
             "items": [
               "VS Code / JetBrains 等に組み込まれている",
               "入力中にコードを提案する",
