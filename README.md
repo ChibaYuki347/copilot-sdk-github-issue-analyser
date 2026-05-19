@@ -1,5 +1,10 @@
 # 🐛 GitHub Issue Complexity Analyser
 
+> 🌏 **Language / 言語**: **English (original)** · [日本語版 (Japanese version)](README.ja.md)
+>
+> Original workshop by **Renee Noble** ([reneenoble/copilot-sdk-github-issue-analyser](https://github.com/reneenoble/copilot-sdk-github-issue-analyser)).
+> Japanese version maintained by **@ChibaYuki347** on the [`ja`](https://github.com/ChibaYuki347/copilot-sdk-github-issue-analyser/tree/ja) branch of [his fork](https://github.com/ChibaYuki347/copilot-sdk-github-issue-analyser). MIT License.
+
 > **Livestream Demo**: Building an AI-powered issue triage tool with the GitHub Copilot SDK
 
 An intelligent issue triage tool that analyses GitHub issues in context - fetching issue details, exploring repository structure, reading source code - and produces a structured complexity assessment recommending the appropriate developer skill level for the fix.
