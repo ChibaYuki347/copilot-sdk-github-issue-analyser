@@ -141,3 +141,22 @@ git checkout ja
 git tag -a ja-stable-2026-05-20 -m "Livestream snapshot for Japanese audience demo"
 git push origin ja-stable-2026-05-20
 ```
+
+---
+
+## 9. 関連リポジトリ — 前身プロトタイプとの関係
+
+ja ブランチ運用者が混同しないよう、Renee Noble さんが公開している 2 つの関連リポをここで整理します。
+
+| リポジトリ | 役割 | ライブ配信での扱い |
+|---|---|---|
+| `reneenoble/copilot-sdk-github-issue-analyser` | **配信用クリーン版** (このリポの upstream)。`app.py` 1 ファイル + `step-by-step/` + `presenter-resources/` が揃った教材構成。 | **ja ブランチで日本語化する対象**。デモはこのリポで実施。 |
+| `reneenoble/gh-copilot-sdk-repo-analyser` | **前身プロトタイプ** (2026-01〜03 開発、その後ストップ)。`api.py` と `src/issue_analyser.py` の分散構成、`docs/architecture.png` あり、教材ファイルなし。 | **デモでは使わない**。視聴者向けに「アーキテクチャ図参照用」として軽くリンクするのみ。 |
+
+両者は同じ 4 ツール (`get_github_issue` / `get_repo_structure` / `search_code_in_repo` / `get_file_content`) を使い、同じスキルレベル分類を採用しています。**前身プロトタイプには LICENSE ファイルがない**ため、画像やコードを ja ブランチに**コピーしないこと**。リンク参照のみ安全です。
+
+upstream の README にも「This is a **clean version** of the project. Planning and iteration was done in a separate repo」と書かれている通り、両者は同じ作者による「実験場」と「公開版」の関係です。日本語デモで配信中に質問が出た場合は、
+
+> 「Renee さんはまず `gh-copilot-sdk-repo-analyser` で試行錯誤して、その後ライブ配信用にこの `copilot-sdk-github-issue-analyser` を clean version として整理した、という経緯です」
+
+と説明すると分かりやすいです。

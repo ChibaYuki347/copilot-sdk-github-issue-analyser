@@ -15,6 +15,8 @@ GitHub Copilot SDK の機能を実演するために、**60 分のライブ配�
 
 > **📌 注**: これは一般公開向けに整えたプロジェクトの**クリーン版**です。計画と反復は[別のリポジトリ](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser)で行われました。一緒に追いかける主要なファイルは [`app.py`](app.py) (構築するコード) と [`step-by-step/build-guide.md`](step-by-step/build-guide.md) (フェーズごとのガイド) です。
 
+> 🇯🇵 **日本語デモを観ている方へ**: 同じ Renee Noble さんが作った **前身プロトタイプ** [`reneenoble/gh-copilot-sdk-repo-analyser`](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser) (2026-01〜03) もありますが、ライブ配信で構築するのは**このリポジトリ**です。前身プロトタイプには `docs/architecture.png` という綺麗なアーキテクチャ図があり、SDK の使い方を別アングルから学びたい方は併せて参照してください。両者は同じ 4 ツール (`get_github_issue` 等) を使い、ロジックも近いです。
+
 ---
 
 ## 📚 学習リソース
