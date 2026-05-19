@@ -1,3 +1,103 @@
+// =================================================================
+// i18n — Minimal locale switcher (en | ja)
+// Activated via ?lang=ja query string. Defaults to en when missing.
+// =================================================================
+const STRINGS = {
+    en: {
+        'title': 'GitHub Issue Complexity Analyser',
+        'heading': '🐛 GitHub Issue Complexity Analyser',
+        'subtitle': 'Analyse GitHub issues to determine the appropriate developer skill level',
+        'tab.url': 'Paste URL',
+        'tab.manual': 'Manual Entry',
+        'label.url': 'GitHub Issue URL',
+        'label.owner': 'Owner',
+        'label.repo': 'Repository',
+        'label.issue_number': 'Issue #',
+        'button.analyse': 'Analyse Issue',
+        'button.analysing': 'Analysing...',
+        'status.starting': 'Starting analysis...',
+        'status.complete': 'Analysis complete!',
+        'status.error_conn': 'Connection lost or analysis failed',
+        'tool.fetching': 'Fetching:',
+        'counter.premium': '💰 Premium requests:',
+        'counter.premium_with_calls': (n, calls) => `💰 Premium requests: ${n} (${calls} tool calls)`,
+        'counter.tokens': (input, output) => `📊 Tokens — in: ${input}, out: ${output}`,
+        'post.button': '💬 Post to GitHub Issue',
+        'post.posting': 'Posting...',
+        'post.done': '✅ Posted!',
+        'post.failed': '❌ Failed to post',
+        'error.invalid_url': 'Invalid GitHub issue URL',
+        'error.label': 'Error:',
+    },
+    ja: {
+        'title': 'GitHub Issue 複雑度解析ツール',
+        'heading': '🐛 GitHub Issue 複雑度解析ツール',
+        'subtitle': 'GitHub Issue を解析し、対応に適した開発者のスキルレベルを判定します',
+        'tab.url': 'URL を貼る',
+        'tab.manual': '手動入力',
+        'label.url': 'GitHub Issue の URL',
+        'label.owner': 'オーナー',
+        'label.repo': 'リポジトリ',
+        'label.issue_number': 'Issue 番号',
+        'button.analyse': 'Issue を解析',
+        'button.analysing': '解析中...',
+        'status.starting': '解析を開始しています...',
+        'status.complete': '解析が完了しました!',
+        'status.error_conn': '接続が切れたか、解析に失敗しました',
+        'tool.fetching': '取得中:',
+        'counter.premium': '💰 プレミアムリクエスト:',
+        'counter.premium_with_calls': (n, calls) => `💰 プレミアムリクエスト: ${n} (ツール呼び出し ${calls} 回)`,
+        'counter.tokens': (input, output) => `📊 トークン — 入力: ${input} / 出力: ${output}`,
+        'post.button': '💬 GitHub Issue に投稿',
+        'post.posting': '投稿中...',
+        'post.done': '✅ 投稿完了!',
+        'post.failed': '❌ 投稿に失敗しました',
+        'error.invalid_url': 'GitHub Issue の URL が不正です',
+        'error.label': 'エラー:',
+    },
+};
+
+function getCurrentLang() {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get('lang');
+    if (fromQuery && STRINGS[fromQuery]) return fromQuery;
+    const stored = localStorage.getItem('lang');
+    if (stored && STRINGS[stored]) return stored;
+    return 'en';
+}
+
+function t(key, ...args) {
+    const lang = getCurrentLang();
+    const val = (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.en[key] || key;
+    return (typeof val === 'function') ? val(...args) : val;
+}
+
+function applyLocale() {
+    const lang = getCurrentLang();
+    document.documentElement.setAttribute('lang', lang);
+    localStorage.setItem('lang', lang);
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        const val = t(key);
+        if (typeof val === 'string') {
+            if (el.tagName === 'TITLE') {
+                document.title = val;
+            } else {
+                el.textContent = val;
+            }
+        }
+    });
+    document.querySelectorAll('.lang-switcher [data-lang]').forEach((a) => {
+        if (a.getAttribute('data-lang') === lang) {
+            a.classList.add('active');
+        } else {
+            a.classList.remove('active');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', applyLocale);
+
 let activeTab = 'url';
 
 function switchTab(tab) {
@@ -14,7 +114,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 function parseGitHubUrl(url) {
     const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
-    if (!match) throw new Error('Invalid GitHub issue URL');
+    if (!match) throw new Error(t('error.invalid_url'));
     return { owner: match[1], repo: match[2], issue_number: parseInt(match[3]) };
 }
 
@@ -78,7 +178,7 @@ function addToolMessage(container, toolName, args) {
     msg.innerHTML = `
         <div class="chat-avatar tool-avatar-spin">${emoji}</div>
         <div class="chat-tool-status">
-            <span class="tool-label">Fetching:</span> <strong>${description}</strong>
+            <span class="tool-label">${t('tool.fetching')}</span> <strong>${description}</strong>
         </div>
     `;
     container.appendChild(msg);
@@ -92,7 +192,7 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
     const result = document.getElementById('result');
     
     btn.disabled = true;
-    btn.textContent = 'Analysing...';
+    btn.textContent = t('button.analysing');
     result.className = 'show';
     
     try {
@@ -112,14 +212,14 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
             <div class="chat-header">
                 <span class="repo-badge">📁 ${owner}/${repo}</span>
                 <span class="issue-badge">#${issue_number}</span>
-                <span class="premium-counter" id="premium-counter">💰 Premium requests: 0</span>
+                <span class="premium-counter" id="premium-counter">${t('counter.premium')} 0</span>
                 <span class="token-counter" id="token-counter"></span>
             </div>
             <div id="chat-container"></div>
         `;
         
         const container = document.getElementById('chat-container');
-        addChatMessage(container, '🚀', 'Starting analysis...', 'status');
+        addChatMessage(container, '🚀', t('status.starting'), 'status');
         
         // Use SSE for streaming
         const params = new URLSearchParams({ owner, repo, issue_number });
@@ -169,7 +269,7 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
             const data = JSON.parse(e.data);
             const counter = document.getElementById('premium-counter');
             if (counter) {
-                counter.textContent = `💰 Premium requests: ${data.premium_requests}`;
+                counter.textContent = `${t('counter.premium')} ${data.premium_requests}`;
                 counter.classList.add('premium-counter-pulse');
                 setTimeout(() => counter.classList.remove('premium-counter-pulse'), 600);
             }
@@ -181,7 +281,7 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
             if (tokenEl) {
                 const input = data.input_tokens?.toLocaleString() || '0';
                 const output = data.output_tokens?.toLocaleString() || '0';
-                tokenEl.textContent = `📊 Tokens — in: ${input}, out: ${output}`;
+                tokenEl.textContent = t('counter.tokens', input, output);
                 tokenEl.classList.add('token-counter-pulse');
                 setTimeout(() => tokenEl.classList.remove('token-counter-pulse'), 600);
             }
@@ -200,7 +300,7 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
             // Show final premium request count
             const counter = document.getElementById('premium-counter');
             if (counter && data.premium_requests !== undefined) {
-                counter.textContent = `💰 Premium requests: ${data.premium_requests} (${data.tool_calls} tool calls)`;
+                counter.textContent = t('counter.premium_with_calls', data.premium_requests, data.tool_calls);
                 counter.classList.add('premium-counter-final');
             }
             
@@ -209,20 +309,20 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
             if (tokenEl && (data.input_tokens || data.output_tokens)) {
                 const input = data.input_tokens?.toLocaleString() || '0';
                 const output = data.output_tokens?.toLocaleString() || '0';
-                tokenEl.textContent = `📊 Tokens — in: ${input}, out: ${output}`;
+                tokenEl.textContent = t('counter.tokens', input, output);
                 if (data.model) tokenEl.textContent += ` · ${data.model}`;
                 tokenEl.classList.add('token-counter-final');
             }
             
-            addChatMessage(container, '✅', 'Analysis complete!', 'status');
+            addChatMessage(container, '✅', t('status.complete'), 'status');
 
             // Show "Post to GitHub" button for human-in-the-loop write-back
             const postBtn = document.createElement('button');
             postBtn.className = 'post-btn';
-            postBtn.textContent = '💬 Post to GitHub Issue';
+            postBtn.textContent = t('post.button');
             postBtn.addEventListener('click', async () => {
                 postBtn.disabled = true;
-                postBtn.textContent = 'Posting...';
+                postBtn.textContent = t('post.posting');
                 try {
                     const resp = await fetch('/post-analysis', {
                         method: 'POST',
@@ -230,29 +330,29 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
                         body: JSON.stringify({ owner, repo, issue_number, body: currentContent }),
                     });
                     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                    postBtn.textContent = '✅ Posted!';
+                    postBtn.textContent = t('post.done');
                     postBtn.classList.add('post-btn-done');
                 } catch (err) {
-                    postBtn.textContent = '❌ Failed to post';
+                    postBtn.textContent = t('post.failed');
                     postBtn.disabled = false;
                 }
             });
             container.appendChild(postBtn);
 
             btn.disabled = false;
-            btn.textContent = 'Analyse Issue';
+            btn.textContent = t('button.analyse');
         });
         
         eventSource.addEventListener('error', (e) => {
             eventSource.close();
-            addChatMessage(container, '❌', 'Connection lost or analysis failed', 'error');
+            addChatMessage(container, '❌', t('status.error_conn'), 'error');
             btn.disabled = false;
-            btn.textContent = 'Analyse Issue';
+            btn.textContent = t('button.analyse');
         });
         
     } catch (err) {
-        result.innerHTML = `<div class="error"><strong>Error:</strong> ${err.message}</div>`;
+        result.innerHTML = `<div class="error"><strong>${t('error.label')}</strong> ${err.message}</div>`;
         btn.disabled = false;
-        btn.textContent = 'Analyse Issue';
+        btn.textContent = t('button.analyse');
     }
 });
