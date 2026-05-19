@@ -406,8 +406,19 @@ Copilot SDK には `on_pre_tool_use` というフックがあります。これ�
 **[DEMO]** 事前に用意した日本語 OSS の issue URL を貼り付けて、CLI を再実行します。
 
 ```bash
-LANG=ja python app.py <日本語 issue の URL>
+APP_LANG=ja python app.py <日本語 issue の URL>
 ```
+
+**本日使う候補** (open かつ moderate な日本語 issue を VOICEVOX から選定済み):
+
+| 順位 | リポジトリ | Issue | URL |
+|---|---|---|---|
+| 本命 | `VOICEVOX/voicevox` | Linux版0.24.0以降でプロジェクトファイルが保存されない | https://github.com/VOICEVOX/voicevox/issues/2723 |
+| 予備 1 | `VOICEVOX/voicevox_engine` | pyproject.toml のバージョン管理問題をなんとかしたい | https://github.com/VOICEVOX/voicevox_engine/issues/1797 |
+| 予備 2 | `VOICEVOX/voicevox` | AppImage 配布の形式を分割無圧縮に変更する | https://github.com/VOICEVOX/voicevox/issues/2845 |
+| 予備 3 | `VOICEVOX/voicevox` | スナップショットが意図せずアップデートされてしまう問題 | https://github.com/VOICEVOX/voicevox/issues/2731 |
+
+> 配信当日に Issue が close されていた場合は予備 1 → 2 → 3 の順で切り替えてください。詳細は `presenter-resources/demo-issue-candidates.md` を参照。
 
 注目してほしいのは 3 点です。
 
