@@ -1,5 +1,12 @@
 import asyncio
+import os
+
+from dotenv import load_dotenv
 from copilot import CopilotClient
+from copilot.session import PermissionHandler
+
+load_dotenv()
+
 
 async def main():
     # Create and start client
@@ -7,7 +14,12 @@ async def main():
     await client.start()
 
     # Create a session
-    session = await client.create_session({"model": "gpt-5"})
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-5",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     # Wait for response using session.idle event
     done = asyncio.Event()
@@ -21,11 +33,11 @@ async def main():
     session.on(on_event)
 
     # Send a message and wait for completion
-    await session.send({"prompt": "What is 2+2?"})
+    await session.send("What is 2+2?")
     await done.wait()
 
     # Clean up
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 
 asyncio.run(main())

@@ -120,8 +120,9 @@ python app.py serve
 # Paste an issue URL and watch stream
 
 # Phase 6 (0:52-0:55) - Write-back
-python app.py post https://github.com/owner/repo/issues/123
-# Check that comment was posted and label was added
+# In the same web UI, click "Post to GitHub" after the analysis streams in.
+# The frontend POSTs the analysis text it already has to /post-analysis,
+# which posts the comment and adds a difficulty label.
 ```
 
 ## 📊 Your Slide Deck
@@ -148,7 +149,7 @@ python app.py post https://github.com/owner/repo/issues/123
 | 0:29-0:39 | 4 | `python app.py <issue_url>` | See tool calls + analysis |
 | 0:39-0:52 | 5 | `python app.py serve` + browser | See chat UI streaming |
 | 0:52-0:55 | 6a | Scroll to `post_comment()` | Explain write-back logic |
-| 0:52-0:55 | 6a | `python app.py post <issue_url>` | Show comment on GitHub |
+| 0:52-0:55 | 6a | Click "Post to GitHub" in the UI | Show comment on GitHub |
 | 0:55-0:58 | 6b | Scroll to `validate_tool_args()` | Talk through safety hooks |
 
 ## 🚀 Ready to Stream!

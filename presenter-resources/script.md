@@ -4,11 +4,11 @@
 
 ---
 
-## Phase 1 - Imports & Intro (0:00–0:05)
+## Phase 1 - Imports & Intro (0:00–0:04)
 
 Hey everyone, welcome to the stream! I'm Renee, and today we're building something pretty cool - an AI-powered GitHub issue triage tool using the GitHub Copilot SDK.
 
-By the end of this hour, we'll have a tool that can take any GitHub issue, autonomously explore the codebase, and recommend what skill level of developer should work on it. Junior, mid-level, senior - the agent figures it out by actually reading the code.
+We've got an hour together - the first 45 minutes we'll build the tool top to bottom, and we'll wrap with 15 minutes of Q&A at the end. By the time we hit that Q&A, we'll have a tool that can take any GitHub issue, autonomously explore the codebase, and recommend what skill level of developer should work on it. Junior, mid-level, senior - the agent figures it out by actually reading the code.
 
 **[DEMO]** Flash the finished web UI in the browser - show the chat interface with a completed analysis so the audience can see where we're headed.
 
@@ -85,7 +85,7 @@ Alright, imports done. Let's make sure the SDK actually works.
 
 ---
 
-## Phase 2a - Hello World with `send_and_wait` (0:05–0:08)
+## Phase 2a - Hello World with `send_and_wait` (0:04–0:06)
 
 Every Copilot SDK app starts with three things: a Client, a Session, and a way to get the response. Let's write the absolute simplest version.
 
@@ -96,7 +96,7 @@ Every Copilot SDK app starts with three things: a Client, a Session, and a way t
 3. `create_session` - this is where we say which model we want. We're using `gpt-4.1`. Why 4.1? Because it was specifically optimized for agentic tool use - reliable function calling and multi-step tool loops. That's exactly what our agent is going to do. You could swap this to Claude, GPT-5, or any model in the GitHub Copilot model catalog - just change this one string. But 4.1 is the sweet spot for tool-heavy agents: fast, reliable, and cost-effective. If your app is more about deep reasoning than tool calling, something like GPT-5 or Claude might be a better fit.
 4. `send_and_wait` - this is the key one. We give it a prompt, and it blocks until the full response comes back. No streaming, no events - just send and get the answer.
 5. `response.data.content` - that's where our text lives.
-6. Then we clean up - destroy the session, stop the client. Always clean up after yourself.
+6. Then we clean up - disconnect the session, stop the client. Always clean up after yourself.
 
 ```
 Write: hello_world() function + temporary __main__ block
@@ -112,7 +112,7 @@ But there's a catch. `send_and_wait` waits for the *entire* response before givi
 
 ---
 
-## Phase 2b - Streaming with Events (0:08–0:14)
+## Phase 2b - Streaming with Events (0:06–0:10)
 
 So let's write a streaming version. Same question, but this time we'll see tokens arrive one at a time.
 
@@ -137,13 +137,13 @@ Quick note here - `send_and_wait` is great for simple cases. Scripts, batch jobs
 
 ---
 
-## Phase 3 - Custom Tools with `@define_tool` (0:14–0:29)
+## Phase 3 - Custom Tools with `@define_tool` (0:10–0:21)
 
 Alright, now we're getting to the fun part. Tools.
 
 Tools are how the agent interacts with the outside world. Right now our agent can only talk - it can't DO anything. We're about to change that. We're going to give it the ability to read GitHub issues, explore repositories, search code, and read files. And the key thing is - we define WHAT's possible, and the agent decides WHEN and HOW to use them.
 
-### 3a. GitHub API helper (~2 min)
+### 3a. GitHub API helper (~1 min)
 
 First, a little helper function. All four of our tools need to call the GitHub API, so let's write that once.
 
@@ -156,7 +156,7 @@ First, a little helper function. All four of our tools need to call the GitHub A
 Write: github_api() helper function
 ```
 
-### 3b. Tool 1 - Get Issue (~3 min)
+### 3b. Tool 1 - Get Issue (~2 min)
 
 Now our first real tool. This is the most important one - it fetches an issue's title, body, labels, and comments.
 
@@ -172,7 +172,7 @@ Also notice the error handling. We return the error as a string, not raise an ex
 Write: GetIssueParams + get_github_issue tool
 ```
 
-### 3c. Tool 2 - Repo Structure (~3 min)
+### 3c. Tool 2 - Repo Structure (~2 min)
 
 Next, the agent needs to understand the layout of the repository. Is it a monorepo? Where's the source code? What framework are they using?
 
@@ -184,7 +184,7 @@ This tool lists the contents of a directory, just like `ls`. We default the path
 Write: RepoStructureParams + get_repo_structure tool
 ```
 
-### 3d. Tool 3 - Search Code (~3 min)
+### 3d. Tool 3 - Search Code (~2 min)
 
 Now the agent can search for keywords in the codebase. If the issue mentions a function name or a specific error, the agent can search for where that appears in the code.
 
@@ -194,7 +194,7 @@ Now the agent can search for keywords in the codebase. If the issue mentions a f
 Write: SearchCodeParams + search_code_in_repo tool
 ```
 
-### 3e. Tool 4 - Read File (~3 min)
+### 3e. Tool 4 - Read File (~2 min)
 
 Last tool. The agent can now read the actual source code of any file in the repo.
 
@@ -211,7 +211,7 @@ To note, you can use Copilot SDK as a sub part of a MAF workflow, where you want
 
 ---
 
-## Phase 4 - System Prompt & CLI Analyser (0:29–0:39)
+## Phase 4 - System Prompt & CLI Analyser (0:21–0:29)
 
 Now we need to tell the agent HOW to behave. That's the system prompt.
 
@@ -253,13 +253,13 @@ A couple of things to note for production. First, we're creating a new `CopilotC
 
 ---
 
-## Phase 5 - FastAPI + Server-Sent Events (0:39–0:52)
+## Phase 5 - FastAPI + Server-Sent Events (0:29–0:39)
 
 OK, we've got a working CLI tool. Now let's make it look professional. We're going to put a web UI on this thing.
 
 Same SDK, same tools, same system prompt - but now instead of printing to the terminal, we're streaming to a browser. The technique we're using is called Server-Sent Events, or SSE. It's a simple HTTP protocol where the server can push data to the client as it becomes available. Perfect for streaming AI responses.
 
-### 5a. FastAPI app + static files (~3 min)
+### 5a. FastAPI app + static files (~2 min)
 
 First, let's set up FastAPI and serve our pre-built frontend.
 
@@ -281,7 +281,7 @@ Quick utility - the SDK can return tool arguments in a few different formats dep
 Write: _parse_args() helper
 ```
 
-### 5c. SSE streaming generator (~7 min)
+### 5c. SSE streaming generator (~4 min)
 
 This is the core of the web app, so let me walk through it carefully.
 
@@ -293,7 +293,7 @@ This is the core of the web app, so let me walk through it carefully.
 
 Walk through the three event types being captured:
 1. `assistant.message` → becomes an SSE `message` event with the content
-2. `assistant.turn_end` → we extract tool requests and their arguments, send them as `tool_call` events so the frontend can show which tools are being used
+2. `tool.execution_start` → fired once per tool invocation, before the tool runs. We grab the tool name and arguments and send them as `tool_call` events so the frontend can show which tools are being used
 3. `session.idle` → becomes a `done` event, and we break out of the loop
 
 The `while True` loop at the bottom pulls from the queue and yields SSE strings until it gets a `done` event.
@@ -302,7 +302,7 @@ The `while True` loop at the bottom pulls from the queue and yields SSE strings 
 Write: stream_analysis() async generator
 ```
 
-### 5d. SSE endpoint (~2 min)
+### 5d. SSE endpoint (~1 min)
 
 Now the endpoint itself is dead simple - it takes owner, repo, and issue number as query params, and returns a `StreamingResponse` wrapping our generator. The `media_type` must be `text/event-stream` for SSE.
 
@@ -328,11 +328,11 @@ Look at that! Same agent, same tools, but now we've got a proper chat UI. You ca
 
 The frontend was already built - all we needed was that SSE endpoint to bridge the SDK events to the browser. That's the whole pattern: SDK events → async queue → SSE → browser.
 
-Two production notes. First, wrap your session in a try/finally block so you always clean up - destroy the session, stop the client - even if the SSE connection drops or an error happens. We're skipping that for simplicity today. Second, you can call `session.send()` multiple times on the same session and the SDK maintains conversation history. We're doing single-turn analysis here, but you could build a back-and-forth chat where users ask follow-up questions about the analysis.
+Two production notes. First, wrap your session in a try/finally block so you always clean up - disconnect the session, stop the client - even if the SSE connection drops or an error happens. We're skipping that for simplicity today. Second, you can call `session.send()` multiple times on the same session and the SDK maintains conversation history. We're doing single-turn analysis here, but you could build a back-and-forth chat where users ask follow-up questions about the analysis.
 
 ---
 
-## Phase 6a - Write Back to GitHub (0:52–0:55)
+## Phase 6a - Write Back to GitHub (0:39–0:41)
 
 So far we've been read-only. We read issues, we read code, but we never write anything back. Let's close the loop - but safely.
 
@@ -344,7 +344,7 @@ What if after the analysis, you could review it and then click a button to post 
 
 1. `post_comment` - one POST request to the GitHub Issues API. We send the analysis text as the comment body. One API call, the assessment appears on the issue.
 
-2. `add_labels` - another POST to add labels. We have a mapping called `SKILL_LABELS` that converts the assessment into the right labels. If the agent said "Junior", we add "good first issue" and "difficulty: junior".
+2. `add_labels` - another POST to add labels. We have a mapping called `SKILL_LABELS` that converts the assessment into the right labels. If the agent said "Junior", we add "good first issue" and "difficulty: easy". Mid-level → "difficulty: medium", Senior → "difficulty: hard", Senior+ → "difficulty: expert". Those `difficulty:` labels aren't built into GitHub, so create them once per repo first or GitHub will silently drop them.
 
 3. `PostAnalysisRequest` - a Pydantic model for the POST body. The frontend sends the owner, repo, issue number, and the full analysis text.
 
@@ -356,11 +356,11 @@ One important note - your `GITHUB_TOKEN` needs write permissions for this. If yo
 
 And notice - the agent didn't post that. *You* did. You read the analysis, decided it looked good, and clicked the button. That's human-in-the-loop, and it's a deliberate safety choice. The agent is powerful, but a human approves the write.
 
-We also still have `analyse_and_post` for the CLI path - that's the fully automated version. It's there if you want it, but for the web UI, we chose the safer path.
+And importantly, the server doesn't re-run the agent when you click the button - the frontend POSTs back the text it already streamed. One run, one comment.
 
 ---
 
-## Phase 6b - Safety Hooks (0:55–0:58)
+## Phase 6b - Safety Hooks (0:41–0:43)
 
 One more thing before we wrap up, and this is really important if you're going to build anything like this for real.
 
@@ -391,9 +391,9 @@ The point is - the SDK gives you the hooks to build safe agents. Use them.
 
 ---
 
-## Wrap-up (0:58–1:00)
+## Wrap-up (0:43–0:45)
 
-Alright, let's take stock of what we built in the last hour.
+Alright, let's take stock of what we built in the last 45 minutes.
 
 We went from an empty file to a fully functional AI-powered issue triage tool. Let me run through the seven concepts we covered:
 
@@ -419,7 +419,7 @@ Thank you so much for hanging out with me today. Now let's do some Q&A!
 
 ---
 
-## Q&A (1:00–1:15)
+## Q&A (0:45–1:00)
 
 > **Keep it conversational.** If someone asks something we covered, refer back to the specific phase. If they ask about something we didn't cover, be honest - "Great question, the course covers that in chapter X" or "That's a good one, I'd approach it by..."
 
@@ -437,4 +437,4 @@ Thank you so much for hanging out with me today. Now let's do some Q&A!
 
 - **"How do I deploy this?"** - The FastAPI app can run anywhere you'd run a Python web service - a container, Azure App Service, Railway, Fly.io. The main thing is having the `GITHUB_TOKEN` available as an environment variable and the Copilot CLI authenticated.
 
-- **"Can I analyse multiple issues at once?"** - Yes! You could create a session per issue or add a batch endpoint. The `analyse_and_post` pattern we showed is perfect for running in a loop over open issues.
+- **"Can I analyse multiple issues at once?"** - Yes! You could loop over open issues from the GitHub API and call `stream_analysis` (or refactor it into a plain `run_analysis()` helper) once per issue. For fully automated bulk posting you'd skip the human-in-the-loop button and POST to `/post-analysis` programmatically - but think hard about whether you want that.

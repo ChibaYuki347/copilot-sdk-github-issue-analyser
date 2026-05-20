@@ -15,13 +15,21 @@ The following must be in place before the stream. Don't live-code these.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .   # installs copilot SDK, fastapi, uvicorn, httpx, pydantic
+pip install -e .   # installs copilot SDK, fastapi, uvicorn, httpx, pydantic, python-dotenv
 ```
 
 ### 2. Environment
 
+Either export the variable directly:
+
 ```bash
 export GITHUB_TOKEN=ghp_your_token_here   # or GH_TOKEN
+```
+
+…or drop it in a local `.env` file (loaded automatically via `python-dotenv`):
+
+```
+GITHUB_TOKEN=ghp_your_token_here
 ```
 
 ### 3. Copilot CLI authenticated
@@ -74,11 +82,16 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from copilot import CopilotClient, define_tool
+from copilot.session import PermissionHandler
+
+# Load GITHUB_TOKEN (and friends) from .env so learners don't have to export anything.
+load_dotenv()
 ```
 
-> **Key point**: Two imports from the SDK - `CopilotClient` (the connection) and `define_tool` (what makes functions available to the agent).
+> **Key point**: Two imports from the SDK - `CopilotClient` (the connection) and `define_tool` (what makes functions available to the agent). `PermissionHandler` is how we auto-approve tool calls in this demo. `load_dotenv()` reads a local `.env` file so the GitHub token can live there instead of an `export`.
 
 ---
 
@@ -94,11 +107,17 @@ async def hello_world():
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4.1"})
-    response = await session.send_and_wait({"prompt": "What is the GitHub Copilot SDK in 2 sentences?"})
-    print(response.data.content)
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
+    response = await session.send_and_wait("What is the GitHub Copilot SDK in 2 sentences?")
+    if response and getattr(response, "data", None) and hasattr(response.data, "content"):
+        print(response.data.content)
 
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -131,7 +150,12 @@ async def hello_world_streaming():
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4.1"})
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     done = asyncio.Event()
 
@@ -142,11 +166,11 @@ async def hello_world_streaming():
             done.set()
 
     session.on(on_event)
-    await session.send({"prompt": "What is the GitHub Copilot SDK in 2 sentences?"})
+    await session.send("What is the GitHub Copilot SDK in 2 sentences?")
     await done.wait()
 
     print()
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -345,11 +369,13 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({
-        "model": "gpt-4.1",
-        "tools": TOOLS,
-        "instructions": SYSTEM_PROMPT,
-    })
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     done = asyncio.Event()
 
@@ -364,13 +390,13 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
             done.set()
 
     session.on(on_event)
-    await session.send({
-        "prompt": f"Please analyse GitHub issue #{issue_number} in {owner}/{repo}."
-    })
+    await session.send(
+        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+    )
     await done.wait()
 
     print("\n")
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -472,11 +498,13 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({
-        "model": "gpt-4.1",
-        "tools": TOOLS,
-        "instructions": SYSTEM_PROMPT,
-    })
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     queue = asyncio.Queue()
 
@@ -488,21 +516,20 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             if content and content.strip():
                 queue.put_nowait(("message", content))
 
-        elif name == "assistant.turn_end":
-            # Capture tool calls with their arguments before execution
-            for tr in getattr(event.data, "tool_requests", None) or []:
-                tool_name = getattr(tr, "name", None)
-                args = _parse_args(getattr(tr, "arguments", None))
-                if tool_name:
-                    queue.put_nowait(("tool_call", {"name": tool_name, "args": args}))
+        elif name == "tool.execution_start":
+            # Fired once per tool invocation, before the tool runs.
+            tool_name = getattr(event.data, "tool_name", None)
+            args = _parse_args(getattr(event.data, "arguments", None))
+            if tool_name:
+                queue.put_nowait(("tool_call", {"name": tool_name, "args": args}))
 
         elif name == "session.idle":
             queue.put_nowait(("done", None))
 
     session.on(on_event)
-    await session.send({
-        "prompt": f"Please analyse GitHub issue #{issue_number} in {owner}/{repo}."
-    })
+    await session.send(
+        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+    )
 
     while True:
         event_type, data = await queue.get()
@@ -514,7 +541,7 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             yield f"event: done\ndata: {json.dumps({'status': 'complete'})}\n\n"
             break
 
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -551,7 +578,9 @@ if __name__ == "__main__":
         asyncio.run(hello_world())
     elif cmd == "serve":
         import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        # reload=True picks up code changes on save. Pass the import string
+        # form ("app:app") rather than the app object so reload can work.
+        uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
     elif cmd.startswith("https://"):
         owner, repo, num = parse_github_url(cmd)
         asyncio.run(analyse_cli(owner, repo, num))
@@ -572,7 +601,7 @@ python app.py serve
 
 > **Key moment**: "Same agent, same tools - but now the audience sees a polished chat UI with spinning tool call indicators and streamed markdown. The frontend was already there; we just needed the SSE endpoint."
 
-> 💡 **Callout - cleanup**: "In production, wrap the session in try/finally to make sure you always call `session.destroy()` and `client.stop()`, even if the SSE connection drops or an error occurs."
+> 💡 **Callout - cleanup**: "In production, wrap the session in try/finally to make sure you always call `session.disconnect()` and `client.stop()`, even if the SSE connection drops or an error occurs."
 
 > 💡 **Callout - multi-turn**: "You can call `session.send()` multiple times on the same session - the SDK maintains conversation history. We're doing single-turn here, but you could build a back-and-forth chat with follow-up questions."
 
@@ -588,10 +617,10 @@ python app.py serve
 
 ```python
 SKILL_LABELS = {
-    "junior": ["good first issue", "difficulty: junior"],
-    "mid-level": ["difficulty: mid-level"],
-    "senior": ["difficulty: senior"],
-    "senior+": ["difficulty: senior+"],
+    "junior": ["good first issue", "difficulty: easy"],
+    "mid-level": ["difficulty: medium"],
+    "senior": ["difficulty: hard"],
+    "senior+": ["difficulty: expert"],
 }
 
 
@@ -623,29 +652,61 @@ async def add_labels(owner: str, repo: str, issue_number: int, labels: list[str]
         )
         resp.raise_for_status()
     print(f"🏷️  Labels added: {', '.join(labels)}")
+```
+
+Then wire the human-in-the-loop endpoint. The frontend already has a "Post to GitHub" button that POSTs the analysis it has already streamed:
+
+```python
+class PostAnalysisRequest(BaseModel):
+    owner: str
+    repo: str
+    issue_number: int
+    body: str
 
 
-async def analyse_and_post(owner: str, repo: str, issue_number: int):
-    """Run analysis, post the result as a comment, and add a difficulty label."""
-    # ... runs the same analysis as analyse_cli() ...
-    # ... then calls post_comment() and add_labels() with the result ...
+@app.post("/post-analysis")
+async def post_analysis(req: PostAnalysisRequest):
+    """Human-triggered: post the analysis as a comment and add a difficulty label."""
+    await post_comment(req.owner, req.repo, req.issue_number, req.body)
+
+    import re
+    match = re.search(r"recommended skill level.*", req.body, re.IGNORECASE)
+    level_line = match.group(0).lower() if match else ""
+    for level in sorted(SKILL_LABELS, key=len, reverse=True):
+        if level in level_line:
+            await add_labels(req.owner, req.repo, req.issue_number, SKILL_LABELS[level])
+            break
+
+    return {"status": "posted"}
+```
+
+And the label detection (scans only the 'Recommended Skill Level' line to avoid
+stray matches in the Mentorship Notes):
+
+```python
+import re
+match = re.search(r"recommended skill level.*", analysis, re.IGNORECASE)
+level_line = match.group(0).lower() if match else ""
+for level in sorted(SKILL_LABELS, key=len, reverse=True):
+    if level in level_line:
+        await add_labels(owner, repo, issue_number, SKILL_LABELS[level])
+        break
 ```
 
 ### Points to call out
 
 - `post_comment` - one POST to the GitHub Issues API with the analysis as the body
-- `add_labels` - one POST to add labels like `"good first issue"` or `"difficulty: senior"`
-- `analyse_and_post` - same agent loop as before, but collects the full response, then posts it back
-- Simple label mapping: scan the analysis text for the skill level keyword and pick the matching labels
+- `add_labels` - one POST to add labels like `"good first issue"` or `"difficulty: hard"`
+- `/post-analysis` endpoint - the **frontend already has** the streamed analysis. When the user clicks "Post to GitHub", it POSTs that text back; the server does NOT re-run the agent. Human-in-the-loop = no surprise comments.
+- Label detection scans **only the `Recommended Skill Level` line** (not the whole body) so words like "junior" in the Mentorship Notes don't trigger the wrong label. Longest key wins, so `senior+` beats `senior` and `mid-level` beats `mid`.
+- **The `difficulty: easy / medium / hard / expert` labels are not built into GitHub** - create them once per repo (Issues → Labels → New label) or GitHub will silently drop them. `good first issue` is built-in.
 - **Token permissions**: needs a `GITHUB_TOKEN` with **Issues: Read and Write** (fine-grained) or `repo` scope (classic)
 
 ### Live demo
 
-```bash
-python app.py post https://github.com/<OWNER>/<REPO>/issues/<NUMBER>
-```
+With `python app.py serve` already running, paste an issue URL into the UI, let the analysis stream, then click the "Post to GitHub" button that appears.
 
-> After it runs, switch to the browser and show the comment + label on the issue. "The agent analysed the issue, posted its review, and labelled it - all from one command."
+> Switch to the browser and show the comment + label on the issue. "The agent analysed the issue, *you* reviewed it, then *you* clicked the button. The agent didn't post anything by itself."
 
 ---
 
@@ -705,13 +766,13 @@ async def validate_tool_args(event):
 | Concept | Where it appears | Time |
 |---|---|---|
 | `CopilotClient()` + `.start()` / `.stop()` | Phase 2a | 0:05 |
-| `create_session({"model": ...})` | Phase 2a | 0:05 |
+| `create_session(model=..., on_permission_request=..., github_token=...)` | Phase 2a | 0:05 |
 | `session.send_and_wait()` | Phase 2a | 0:06 |
 | Event handler with `session.on()` | Phase 2b | 0:09 |
 | `session.send()` (non-blocking) | Phase 2b | 0:10 |
 | `@define_tool` with Pydantic params | Phase 3 | 0:14 |
-| `tools: [...]` in session config | Phase 4 | 0:29 |
-| `instructions:` (system prompt) | Phase 4 | 0:30 |
+| `tools=[...]` kwarg on `create_session` | Phase 4 | 0:29 |
+| System prompt prepended to `session.send()` | Phase 4 | 0:30 |
 | Agentic tool loop (multi-turn) | Phase 4 demo | 0:36 |
 | SSE streaming from event queue | Phase 5 | 0:42 |
 | GitHub API write-back (shown) | Phase 6a | 0:52 |
