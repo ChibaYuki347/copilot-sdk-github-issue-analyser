@@ -71,8 +71,10 @@ git push origin ja
 | ファイル | 想定衝突 | 解決方針 |
 |---|---|---|
 | `README.md` | 冒頭の Language switch バナー | `ja` 側を採用しつつ、`main` から来た本文の更新を取り込む |
-| `app.py` | 大きな機能追加が upstream に入った場合 | `ja` ブランチ側のロジック (LANG 切替) を保ったまま、新機能を取り込む |
-| `presenter-resources/` | プレゼンター用ファイルの更新 | 基本的に `main` を採用。日本語版独自ファイル (`*_JA.pdf` 等) はそのまま |
+| `app.py` | upstream で穴埋めスキャフォールドが拡張される場合 | **`ja` 側で書き換えない方針**。基本的に `--theirs` で upstream を全面採用し、i18n は `app_final.py` 側のみに反映する |
+| `app_final.py` | upstream で完成版の実装が更新される場合 | `ja` 側の `SYSTEM_PROMPT_EN/JA`・`MESSAGES` dict・`msg()` helper・SYSTEM_PROMPT 連結部分を保ったまま、新機能を取り込む |
+| `src/static/app.js` | upstream で UI 機能が増減する場合 | i18n 辞書 (`t()` 関数の辞書) は ja 側を保つ。削除された機能 (例: premium-counter) は ja 辞書からも削除 |
+| `presenter-resources/` | プレゼンター用ファイルの更新 | 基本的に `main` を採用。日本語版独自ファイル (`*_JA.pdf`, `script.ja.md`, `demo-issue-candidates.md` 等) はそのまま |
 
 ---
 
@@ -80,8 +82,12 @@ git push origin ja
 
 | パターン | 例 |
 |---|---|
-| `<name>.ja.md` | `README.ja.md`, `AGENTS.ja.md`, `docs/RAI.ja.md`, `step-by-step/build-guide.ja.md` |
-| 新規日本語専用ファイル | `step-by-step/glossary.ja.md`, `step-by-step/system-prompt.ja.md`, `docs/SYNCING-UPSTREAM.ja.md` (本ファイル) |
+| `<name>.ja.md` | `README.ja.md`, `AGENTS.ja.md`, `docs/RAI.ja.md`, `step-by-step/build-guide.ja.md`, `presenter-resources/script.ja.md` |
+| 新規日本語専用ファイル | `step-by-step/glossary.ja.md`, `step-by-step/system-prompt.ja.md`, `docs/SYNCING-UPSTREAM.ja.md` (本ファイル), `presenter-resources/demo-issue-candidates.md` |
+
+> 📌 **upstream の構造変更 (cd352ac, 2026-05-20)** で `script.md` が `step-by-step/` → `presenter-resources/` に移動しました。日本語版 `script.ja.md` も同じく `presenter-resources/` 配下にあります。`slides.md` (英語版) は upstream で削除されたため、ja 版もありません (スライド本体は別途 `presenter-resources/` 配下の素材を参照してください)。
+
+> 📌 **`app.py` は i18n しない方針** です。upstream の `app.py` は 372 行の **穴埋め用スキャフォールド** で、受講者がライブ配信中に書き込んでいくファイルなので、日本語コメントを混入させると学習体験を損ねます。日本語化が必要な実装は upstream で新規追加された **`app_final.py`** に集約し、`APP_LANG=ja` (CLI 出力) / `LANG=ja` (システムプロンプト) の環境変数で切り替えます。`extras_usage.py` (`SHOW_USAGE=1` で有効化する token usage ロガー) も英語のままです。
 
 ---
 
@@ -120,13 +126,13 @@ git push origin ja
 # 3. pre-stream-check を ja ブランチで実行
 bash presenter-resources/pre-stream-check.sh
 
-# 4. 日本語動作の確認
-LANG=ja python app.py hello
-LANG=ja python app.py serve   # ブラウザで http://localhost:8000
+# 4. 日本語動作の確認 (app_final.py 側に i18n が実装されています)
+LANG=ja APP_LANG=ja python app_final.py hello
+LANG=ja APP_LANG=ja python app_final.py serve   # ブラウザで http://localhost:8000
 
 # 5. デモ用 issue (英語版 + 日本語版) を最終チェック
-python app.py <英語 issue の URL>
-LANG=ja python app.py <日本語 issue の URL>
+python app_final.py <英語 issue の URL>
+LANG=ja APP_LANG=ja python app_final.py <日本語 issue の URL>
 ```
 
 ---

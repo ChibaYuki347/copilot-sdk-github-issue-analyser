@@ -25,12 +25,17 @@
 | Event | イベント | |
 | Event type | イベント種別 | |
 | `assistant.message` | (英語のまま) | コードに現れるリテラルなので翻訳しない |
-| `tool.call` | (英語のまま) | 同上 |
+| `tool.call` / `tool.execution_start` | (英語のまま) | 同上。後者は upstream で `assistant.turn_end` から置き換わった新イベント |
 | `session.idle` | (英語のまま) | 同上 |
 | System prompt | システムプロンプト | |
 | Prompt | プロンプト | |
-| Permission handler | パーミッションハンドラ | |
+| Permission handler | パーミッションハンドラ | `PermissionHandler.approve_all` で自動承認 (このデモ用) |
 | `send_and_wait` | (英語のまま) | API 名 |
+| `session.disconnect()` | (英語のまま) | 旧 `session.destroy()` の置き換え (upstream cd352ac) |
+| `load_dotenv()` | (英語のまま) | `python-dotenv` の関数。`.env` から GITHUB_TOKEN を読む |
+| Scaffold / Scaffolding | スキャフォールド (穴埋め用テンプレ) | `app.py` (空) と `app_final.py` (完成版) の対比に使う |
+| Run/Debug configuration | 実行/デバッグ設定 | `.vscode/launch.json` の VS Code 機能 |
+| Human-in-the-loop | ヒューマン・イン・ザ・ループ | 「Post to GitHub」ボタンで投稿前に人が確認するパターン |
 | Multi-turn tool loop | マルチターンのツールループ | |
 
 ## 3. GitHub 用語
@@ -107,6 +112,11 @@
 | `<name>.ja.md` | 日本語版 (新規追加) |
 | `glossary.ja.md` | 本ファイル |
 | `presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf` | 英語スライド PDF (upstream の既存ファイル) |
+| `presenter-resources/script.md` / `script.ja.md` | ライブ配信トーキングポイント (upstream cd352ac で `step-by-step/` から移動) |
+| `app.py` | **upstream と同一の穴埋め用スキャフォールド**。日本語版でも英語のまま (受講者が配信中に書き込むため) |
+| `app_final.py` | 完成版 (i18n 実装はこちらに集約。`APP_LANG=ja` で日本語化) |
+| `extras_usage.py` | 任意の token usage ロガー (`SHOW_USAGE=1` で有効化、英語のまま) |
+| `.vscode/launch.json` | Run Webapp Server / Run Webapp Server (final) の 2 設定 (英語のまま) |
 
 ## 8. クレジット表記の標準フレーズ
 
