@@ -1,14 +1,14 @@
 """
-stream_api.py — GitHub Issue Complexity Analyser
+app_final.py — GitHub Issue Complexity Analyser
 
 Built step-by-step during the livestream. Frontend is pre-built in src/static/.
 
 Usage:
-  python stream_api.py hello                          # Phase 2a: Simplest SDK call
-  python stream_api.py hello-stream                   # Phase 2b: Streaming events
-  python stream_api.py <github_issue_url>             # Phase 4: CLI analysis
-  python stream_api.py <owner> <repo> <issue_number>  # Phase 4: CLI analysis
-  python stream_api.py serve                          # Phase 5: Start web UI (post via the UI button)
+  python app_final.py hello                          # Phase 2a: Simplest SDK call
+  python app_final.py hello-stream                   # Phase 2b: Streaming events
+  python app_final.py <github_issue_url>             # Phase 4: CLI analysis
+  python app_final.py <owner> <repo> <issue_number>  # Phase 4: CLI analysis
+  python app_final.py serve                          # Phase 5: Start web UI (post via the UI button)
 """
 
 # =================================================================
@@ -59,7 +59,7 @@ async def hello_world():
     await session.disconnect()
     await client.stop()
 
-# Command to run this phase: python stream_api.py hello
+# Command to run this phase: python app_final.py hello
 
 
 # =================================================================
@@ -107,7 +107,7 @@ async def hello_world_streaming():
     await session.disconnect()
     await client.stop()
 
-# Command to run this phase: python stream_api.py hello-stream
+# Command to run this phase: python app_final.py hello-stream
 
 
 # =================================================================
@@ -316,8 +316,8 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
     await session.disconnect()
     await client.stop()
 
-# Command to run this phase: python stream_api.py <owner> <repo> <issue_number>
-# Example: python stream_api.py microsoft vscode 12345
+# Command to run this phase: python app_final.py <owner> <repo> <issue_number>
+# Example: python app_final.py microsoft vscode 12345
 
 
 # =================================================================
@@ -423,7 +423,7 @@ async def analyse_stream(owner: str, repo: str, issue_number: int):
     )
 
 
-# Command to run this phase: python stream_api.py serve
+# Command to run this phase: python app_final.py serve
 # Then open http://localhost:8000 in the browser and enter the repo and issue number
 
 # =================================================================
@@ -566,11 +566,11 @@ def _parse_args(raw):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("🐛 GitHub Issue Complexity Analyser — Livestream Build\n")
-        print("  python stream_api.py hello                          # Test the SDK (send_and_wait)")
-        print("  python stream_api.py hello-stream                   # Test with streaming events")
-        print("  python stream_api.py <github_issue_url>             # CLI analysis")
-        print("  python stream_api.py <owner> <repo> <issue_number>  # CLI analysis")
-        print("  python stream_api.py serve                          # Web UI (post via the UI button)")
+        print("  python app_final.py hello                          # Test the SDK (send_and_wait)")
+        print("  python app_final.py hello-stream                   # Test with streaming events")
+        print("  python app_final.py <github_issue_url>             # CLI analysis")
+        print("  python app_final.py <owner> <repo> <issue_number>  # CLI analysis")
+        print("  python app_final.py serve                          # Web UI (post via the UI button)")
         sys.exit(0)
 
     cmd = sys.argv[1]
@@ -582,8 +582,8 @@ if __name__ == "__main__":
     elif cmd == "serve":
         import uvicorn
         # reload=True picks up code changes on save. Pass the import string
-        # form ("app:app") rather than the app object so reload can work.
-        uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+        # form ("module:app") rather than the app object so reload can work.
+        uvicorn.run("app_final:app", host="0.0.0.0", port=8001, reload=True)
     elif cmd.startswith("https://"):
         owner, repo, num = parse_github_url(cmd)
         asyncio.run(analyse_cli(owner, repo, num))

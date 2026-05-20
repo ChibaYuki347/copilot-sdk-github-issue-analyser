@@ -11,6 +11,17 @@
             "justMyCode": true,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run Webapp Server (final)",
+            "type": "python",
+            "request": "launch",
+            "module": "app_final",
+            "args": ["serve"],
+            "jinja": true,
+            "justMyCode": true,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
