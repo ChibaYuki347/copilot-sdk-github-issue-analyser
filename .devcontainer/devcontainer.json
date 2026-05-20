@@ -1,8 +1,9 @@
 {
   "name": "GitHub Issue Complexity Analyser",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "app",
-  "workspaceFolder": "/workspace",
+  "image": "mcr.microsoft.com/devcontainers/python:2-3.13-bullseye",
+  "remoteEnv": {
+    "PATH": "/workspaces/copilot-sdk-github-issue-analyser-/.venv/bin:${containerEnv:PATH}"
+  },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
@@ -32,7 +33,7 @@
       "description": "GitHub personal access token (needs Issues: read/write, Contents: read). Also used for Copilot SDK auth."
     }
   },
-  "onCreateCommand": "python3 -m pip install -U uv && python3 -m uv sync",
-  "postCreateCommand": "sh -lc 'token=${GH_TOKEN:-$GITHUB_TOKEN}; if [ -n \"$token\" ]; then echo \"GitHub token found in environment; using env-based gh auth.\"; else echo \"No GH_TOKEN/GITHUB_TOKEN found; skipping token-based gh auth setup.\"; fi; if gh copilot --help >/dev/null 2>&1; then echo \"gh copilot is available (built-in or installed extension).\"; else gh extension list | grep -q \"github/gh-copilot\" || gh extension install github/gh-copilot; fi'",
-  "postStartCommand": "echo '✅ Dev Container Ready!\\n\\n📌 Quick Start Commands:\\n  python app.py hello              # Simple SDK call\\n  python app.py hello-stream       # Streaming example\\n  python app.py serve              # Start web UI (http://localhost:8000)\\n  python app.py <github_issue_url> # Analyse GitHub issue\\n\\n🔐 If GITHUB_TOKEN or GH_TOKEN is set, gh uses env-based auth and the Copilot CLI extension is ensured\\n🐛 Use F5 to start the debug server\\n'"
+  "onCreateCommand": "sh -c 'command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh; ${HOME}/.local/bin/uv sync'",
+  "postCreateCommand": "sh -lc 'token=${GH_TOKEN:-$GITHUB_TOKEN}; if [ -n \"$token\" ]; then printf \"%s\" \"$token\" | gh auth login --with-token && (gh extension list | grep -q \"github/gh-copilot\" || gh extension install github/gh-copilot); else echo \"GH_TOKEN or GITHUB_TOKEN not set; skipping gh auth setup.\"; fi'",
+  "postStartCommand": "echo '✅ Dev Container Ready!\\n\\n📌 Quick Start Commands:\\n  python app.py hello              # Simple SDK call\\n  python app.py hello-stream       # Streaming example\\n  python app.py serve              # Start web UI (http://localhost:8000)\\n  python app.py <github_issue_url> # Analyse GitHub issue\\n\\n🔐 If GITHUB_TOKEN or GH_TOKEN is set, gh auth and the Copilot CLI extension are configured automatically\\n🐛 Use F5 to start the debug server\\n'"
 }

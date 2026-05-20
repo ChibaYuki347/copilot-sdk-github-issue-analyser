@@ -112,7 +112,6 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
             <div class="chat-header">
                 <span class="repo-badge">📁 ${owner}/${repo}</span>
                 <span class="issue-badge">#${issue_number}</span>
-                <span class="premium-counter" id="premium-counter">💰 Premium requests: 0</span>
                 <span class="token-counter" id="token-counter"></span>
             </div>
             <div id="chat-container"></div>
@@ -120,7 +119,7 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
         
         const container = document.getElementById('chat-container');
         addChatMessage(container, '🚀', 'Starting analysis...', 'status');
-        
+
         // Use SSE for streaming
         const params = new URLSearchParams({ owner, repo, issue_number });
         const eventSource = new EventSource(`/analyse/stream?${params}`);
@@ -165,16 +164,6 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
             currentContent = '';
         });
         
-        eventSource.addEventListener('premium_request', (e) => {
-            const data = JSON.parse(e.data);
-            const counter = document.getElementById('premium-counter');
-            if (counter) {
-                counter.textContent = `💰 Premium requests: ${data.premium_requests}`;
-                counter.classList.add('premium-counter-pulse');
-                setTimeout(() => counter.classList.remove('premium-counter-pulse'), 600);
-            }
-        });
-        
         eventSource.addEventListener('usage', (e) => {
             const data = JSON.parse(e.data);
             const tokenEl = document.getElementById('token-counter');
@@ -196,14 +185,7 @@ document.getElementById('analyseForm').addEventListener('submit', async (e) => {
                 lastToolMsg.querySelector('.chat-avatar')?.classList.remove('tool-avatar-spin');
                 lastToolMsg.querySelector('.chat-tool-status').innerHTML += ' ✓';
             }
-            
-            // Show final premium request count
-            const counter = document.getElementById('premium-counter');
-            if (counter && data.premium_requests !== undefined) {
-                counter.textContent = `💰 Premium requests: ${data.premium_requests} (${data.tool_calls} tool calls)`;
-                counter.classList.add('premium-counter-final');
-            }
-            
+
             // Show final token usage
             const tokenEl = document.getElementById('token-counter');
             if (tokenEl && (data.input_tokens || data.output_tokens)) {

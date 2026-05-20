@@ -185,11 +185,8 @@ python app.py https://github.com/microsoft/vscode/issues/12345
 # Analyse by owner/repo/number
 python app.py microsoft vscode 12345
 
-# Start the web UI
+# Start the web UI (click "Post to GitHub" in the UI to write back)
 python app.py serve
-
-# Analyse and post results back to GitHub
-python app.py post https://github.com/your-org/your-repo/issues/123
 ```
 
 ---

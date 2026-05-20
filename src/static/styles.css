@@ -404,28 +404,6 @@ button:disabled {
     cursor: default !important;
 }
 
-.premium-counter {
-    background: #fff8c5;
-    border: 1px solid #d4a72c;
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    margin-left: auto;
-    white-space: nowrap;
-    transition: background 0.3s ease;
-}
-
-.premium-counter-pulse {
-    background: #ffdf5d;
-}
-
-.premium-counter-final {
-    background: #dafbe1;
-    border-color: #2da44e;
-    color: #1a7f37;
-}
-
 .token-counter {
     background: #ddf4ff;
     border: 1px solid #54aeff;
