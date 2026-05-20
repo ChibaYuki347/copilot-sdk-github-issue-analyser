@@ -252,7 +252,18 @@ TOOLS = [get_github_issue, get_repo_structure, search_code_in_repo, get_file_con
 # Create the system prompt that guides the agent's behaviour. 
 # This is where you inject the "personality" and instructions for the agent. 
 # You can include formatting instructions, reasoning steps, and any constraints or guidelines
-SYSTEM_PROMPT = """You are a senior engineering manager triaging GitHub issues.
+#
+# =================================================================
+# Locale support — minimal en/ja switching (日本語版独自の追加)
+# Set LANG=ja or APP_LANG=ja to render system prompt + CLI in Japanese.
+# 既定は en で、upstream の挙動と等価です。
+# =================================================================
+
+LANG = (os.environ.get("APP_LANG") or os.environ.get("LANG") or "en")[:2].lower()
+if LANG not in ("en", "ja"):
+    LANG = "en"
+
+SYSTEM_PROMPT_EN = """You are a senior engineering manager triaging GitHub issues.
 
 When given an issue to analyse, you will:
 1. Fetch the issue details using the get_github_issue tool
@@ -271,11 +282,61 @@ Format your response as:
 ## Mentorship Notes
 Include what a less experienced developer would need to learn to tackle this issue."""
 
+SYSTEM_PROMPT_JA = """あなたは GitHub Issue をトリアージするシニアエンジニアリングマネージャーです。
+
+解析する Issue が与えられたら、次を行います:
+1. `get_github_issue` ツールを使って Issue の詳細を取得します
+2. コードベースを理解するために、リポジトリ構造を探索します
+3. 関連するソースファイルを検索して読みます
+4. 構造化された複雑さ評価を提供します
+
+回答は次の形式にしてください:
+## Issue の要約
+## 複雑さ評価
+- **推奨スキルレベル**: ジュニア / ミドル / シニア / シニア+
+- **確信度**: 高 / 中 / 低
+## 理由
+## 関係する可能性が高いファイル
+## 提案する進め方
+## メンタリングのヒント
+この Issue に取り組むために、経験の浅い開発者が何を学ぶ必要があるかも含めてください。
+スキルレベルのラベルは年次ではなくコードベースへの習熟度を指します。"""
+
+SYSTEM_PROMPT = SYSTEM_PROMPT_JA if LANG == "ja" else SYSTEM_PROMPT_EN
+
+MESSAGES = {
+    "en": {
+        "analysing": "🔍 Analysing issue #{issue_number} in {owner}/{repo}...",
+        "tool_running": "🔧 {tool}...",
+        "comment_posted": "💬 Comment posted to {owner}/{repo}#{issue_number}",
+        "labels_added": "🏷️  Labels added: {labels}",
+        "analyse_prompt": "Please analyse GitHub issue #{issue_number} in {owner}/{repo}.",
+        "cli_title": "🐛 GitHub Issue Complexity Analyser — Livestream Build",
+        "cli_arg_error": "Error: Invalid arguments. Run without args for usage.",
+    },
+    "ja": {
+        "analysing": "🔍 {owner}/{repo} の Issue #{issue_number} を解析しています...",
+        "tool_running": "🔧 {tool} を実行しています...",
+        "comment_posted": "💬 {owner}/{repo}#{issue_number} にコメントを投稿しました",
+        "labels_added": "🏷️  ラベルを追加しました: {labels}",
+        "analyse_prompt": "{owner}/{repo} の GitHub Issue #{issue_number} を解析してください。",
+        "cli_title": "🐛 GitHub Issue Complexity Analyser — ライブ配信ビルド",
+        "cli_arg_error": "エラー: 引数が不正です。使い方を表示するには引数なしで実行してください。",
+    },
+}
+
+
+def msg(key: str, **fmt) -> str:
+    """Look up a localized message and format it. Falls back to English."""
+    template = MESSAGES.get(LANG, MESSAGES["en"]).get(key) or MESSAGES["en"][key]
+    return template.format(**fmt) if fmt else template
+
+
 # This function is much like Phase 2b, but now the agent can 
 # call tools, has a system prompt, and has logic to handle output for different tool calls
 async def analyse_cli(owner: str, repo: str, issue_number: int):
     """Run analysis in the terminal with streaming output."""
-    print(f"\n🔍 Analysing issue #{issue_number} in {owner}/{repo}...\n")
+    print(f"\n{msg('analysing', owner=owner, repo=repo, issue_number=issue_number)}\n")
 
     client = CopilotClient()
     await client.start()
@@ -301,14 +362,14 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
             print(event.data.content, end="", flush=True)
         elif name in ("tool.call", "tool.execution_start"):
             tool = getattr(event.data, "name", None) or getattr(event.data, "tool_name", "")
-            print(f"\n🔧 {tool}...", flush=True)
+            print(f"\n{msg('tool_running', tool=tool)}", flush=True)
         elif name == "session.idle":
             done.set()
 
     session.on(on_event)
     # Send a message, now using your system prompt and the specific issue to analyse. 
     await session.send(
-        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+        f"{SYSTEM_PROMPT}\n\n{msg('analyse_prompt', owner=owner, repo=repo, issue_number=issue_number)}"
     )
     await done.wait()
 
@@ -395,7 +456,7 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
     # from query parameters collected when the analyse/stream endpoint calls this function.
     session.on(on_event)
     await session.send(
-        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+        f"{SYSTEM_PROMPT}\n\n{msg('analyse_prompt', owner=owner, repo=repo, issue_number=issue_number)}"
     )
 
     # Stream events to the frontend as they come in. The frontend will render them as chat bubbles and tool call notifications.
@@ -458,7 +519,7 @@ async def post_comment(owner: str, repo: str, issue_number: int, body: str):
             json={"body": body},
         )
         resp.raise_for_status()
-    print(f"💬 Comment posted to {owner}/{repo}#{issue_number}")
+    print(msg('comment_posted', owner=owner, repo=repo, issue_number=issue_number))
 
 
 async def add_labels(owner: str, repo: str, issue_number: int, labels: list[str]):
@@ -473,7 +534,7 @@ async def add_labels(owner: str, repo: str, issue_number: int, labels: list[str]
             json={"labels": labels},
         )
         resp.raise_for_status()
-    print(f"🏷️  Labels added: {', '.join(labels)}")
+    print(msg('labels_added', labels=", ".join(labels)))
 
 
 class PostAnalysisRequest(BaseModel):
@@ -565,7 +626,7 @@ def _parse_args(raw):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("🐛 GitHub Issue Complexity Analyser — Livestream Build\n")
+        print(f"{msg('cli_title')}\n")
         print("  python app_final.py hello                          # Test the SDK (send_and_wait)")
         print("  python app_final.py hello-stream                   # Test with streaming events")
         print("  python app_final.py <github_issue_url>             # CLI analysis")
@@ -590,5 +651,5 @@ if __name__ == "__main__":
     elif len(sys.argv) == 4:
         asyncio.run(analyse_cli(sys.argv[1], sys.argv[2], int(sys.argv[3])))
     else:
-        print("Error: Invalid arguments. Run without args for usage.")
+        print(msg('cli_arg_error'))
         sys.exit(1)
