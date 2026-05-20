@@ -6,7 +6,18 @@
 
 - **リポジトリ活動確認**: `VOICEVOX/voicevox` は 2026-05-18 push、`VOICEVOX/voicevox_engine` は 2026-05-13 push（いずれも `gh repo view` で確認）
 
+## ⚙️ 練習・自前デモ用フォールバック
+
+VOICEVOX への投稿は本番限定とし、**配信前のリハーサルや、自分の repo を analysis 結果で汚したくないケース** では Renee さん公式の練習用リポジトリを使えます:
+
+- **`reneenoble/demo_project_with_issues`** — https://github.com/reneenoble/demo_project_with_issues
+  - fork 可。基本的な Python プロジェクトに「いろいろな難易度の問題」が仕込まれています
+  - リポ内のスクリプトで **任意難易度の issue を一括生成** できます (タグなしで何度でも spam push して大丈夫)
+  - 英語の issue が中心なので、本配信の Demo 2 (日本語 issue) には使えません。**英語ベースのリハーサル / 練習用** と割り切るのが良いです
+  - Renee さんからのメッセージ (2026-05-20 dry run フィードバック): 「自分の repo を spam したくないなら、私のデモ用リポを fork してください。難易度別 issue を生成するスクリプトも入っています」
+
 ## 本命 (Primary)
+
 
 ### 1. [VOICEVOX/voicevox] — Linux版0.24.0以降でプロジェクトファイルが保存されない
 - **URL**: https://github.com/VOICEVOX/voicevox/issues/2723
