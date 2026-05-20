@@ -22,13 +22,21 @@
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .   # installs copilot SDK, fastapi, uvicorn, httpx, pydantic
+pip install -e .   # installs copilot SDK, fastapi, uvicorn, httpx, pydantic, python-dotenv
 ```
 
 ### 2. 環境
 
+環境変数を直接 export するか、
+
 ```bash
 export GITHUB_TOKEN=ghp_your_token_here   # or GH_TOKEN
+```
+
+…またはローカルの `.env` ファイルに書いておきます (`python-dotenv` が自動で読み込みます):
+
+```
+GITHUB_TOKEN=ghp_your_token_here
 ```
 
 ### 3. Copilot CLI の認証完了
@@ -81,11 +89,16 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from copilot import CopilotClient, define_tool
+from copilot.session import PermissionHandler
+
+# Load GITHUB_TOKEN (and friends) from .env so learners don't have to export anything.
+load_dotenv()
 ```
 
-> **ポイント**: SDK からのインポートは 2 つです — `CopilotClient` (接続) と `define_tool` (関数をエージェントに使えるようにするもの) です。
+> **ポイント**: SDK からのインポートは 2 つです — `CopilotClient` (接続) と `define_tool` (関数をエージェントに使えるようにするもの) です。`PermissionHandler` は、このデモでツール呼び出しを自動承認するために使います。`load_dotenv()` はローカルの `.env` ファイルを読み込むので、GitHub トークンを `export` ではなく `.env` に書いておけます。
 
 ---
 
@@ -101,11 +114,17 @@ async def hello_world():
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4.1"})
-    response = await session.send_and_wait({"prompt": "What is the GitHub Copilot SDK in 2 sentences?"})
-    print(response.data.content)
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
+    response = await session.send_and_wait("What is the GitHub Copilot SDK in 2 sentences?")
+    if response and getattr(response, "data", None) and hasattr(response.data, "content"):
+        print(response.data.content)
 
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -138,7 +157,12 @@ async def hello_world_streaming():
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4.1"})
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     done = asyncio.Event()
 
@@ -149,11 +173,11 @@ async def hello_world_streaming():
             done.set()
 
     session.on(on_event)
-    await session.send({"prompt": "What is the GitHub Copilot SDK in 2 sentences?"})
+    await session.send("What is the GitHub Copilot SDK in 2 sentences?")
     await done.wait()
 
     print()
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -352,11 +376,13 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({
-        "model": "gpt-4.1",
-        "tools": TOOLS,
-        "instructions": SYSTEM_PROMPT,
-    })
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     done = asyncio.Event()
 
@@ -371,13 +397,13 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
             done.set()
 
     session.on(on_event)
-    await session.send({
-        "prompt": f"Please analyse GitHub issue #{issue_number} in {owner}/{repo}."
-    })
+    await session.send(
+        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+    )
     await done.wait()
 
     print("\n")
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -480,10 +506,13 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
     await client.start()
 
     session = await client.create_session({
-        "model": "gpt-4.1",
-        "tools": TOOLS,
-        "instructions": SYSTEM_PROMPT,
-    })
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
     queue = asyncio.Queue()
 
@@ -495,21 +524,20 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             if content and content.strip():
                 queue.put_nowait(("message", content))
 
-        elif name == "assistant.turn_end":
-            # Capture tool calls with their arguments before execution
-            for tr in getattr(event.data, "tool_requests", None) or []:
-                tool_name = getattr(tr, "name", None)
-                args = _parse_args(getattr(tr, "arguments", None))
-                if tool_name:
-                    queue.put_nowait(("tool_call", {"name": tool_name, "args": args}))
+        elif name == "tool.execution_start":
+            # Fired once per tool invocation, before the tool runs.
+            tool_name = getattr(event.data, "tool_name", None)
+            args = _parse_args(getattr(event.data, "arguments", None))
+            if tool_name:
+                queue.put_nowait(("tool_call", {"name": tool_name, "args": args}))
 
         elif name == "session.idle":
             queue.put_nowait(("done", None))
 
     session.on(on_event)
-    await session.send({
-        "prompt": f"Please analyse GitHub issue #{issue_number} in {owner}/{repo}."
-    })
+    await session.send(
+        f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
+    )
 
     while True:
         event_type, data = await queue.get()
@@ -521,7 +549,7 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             yield f"event: done\ndata: {json.dumps({'status': 'complete'})}\n\n"
             break
 
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 ```
 
@@ -558,7 +586,9 @@ if __name__ == "__main__":
         asyncio.run(hello_world())
     elif cmd == "serve":
         import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        # reload=True picks up code changes on save. Pass the import string
+        # form ("app:app") rather than the app object so reload can work.
+        uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
     elif cmd.startswith("https://"):
         owner, repo, num = parse_github_url(cmd)
         asyncio.run(analyse_cli(owner, repo, num))
@@ -579,7 +609,7 @@ python app.py serve
 
 > **重要な瞬間**: 「同じエージェント、同じツールです。ただ、今度は視聴者にスピナー付きのツール呼び出しインジケーターとストリーミングされた Markdown を備えた整ったチャット UI が見えます。フロントエンドはすでにあり、必要だったのは SSE エンドポイントだけでした。」
 
-> 💡 **コールアウト - クリーンアップ**: 「本番環境では、SSE 接続が切れたりエラーが発生したりしても必ず `session.destroy()` と `client.stop()` を呼ぶように、セッションを try/finally で包んでください。」
+> 💡 **コールアウト - クリーンアップ**: 「本番環境では、SSE 接続が切れたりエラーが発生したりしても必ず `session.disconnect()` と `client.stop()` を呼ぶように、セッションを try/finally で包んでください。」
 
 > 💡 **コールアウト - マルチターン**: 「同じセッションに対して `session.send()` を複数回呼べます。SDK が会話履歴を保持するからです。ここではシングルターンですが、追加質問のある往復型チャットも作れます。」
 
@@ -591,14 +621,14 @@ python app.py serve
 
 **これはライブコーディングしません** - `app.py` のその箇所までスクロールし、何をしているかを説明してから、デモを実行します。
 
-### 見せるコード (`app.py` にすでにある)
+### 見せるコード (`app_final.py` にすでにある)
 
 ```python
 SKILL_LABELS = {
-    "junior": ["good first issue", "difficulty: junior"],
-    "mid-level": ["difficulty: mid-level"],
-    "senior": ["difficulty: senior"],
-    "senior+": ["difficulty: senior+"],
+    "junior": ["good first issue", "difficulty: easy"],
+    "mid-level": ["difficulty: medium"],
+    "senior": ["difficulty: hard"],
+    "senior+": ["difficulty: expert"],
 }
 
 
@@ -630,29 +660,60 @@ async def add_labels(owner: str, repo: str, issue_number: int, labels: list[str]
         )
         resp.raise_for_status()
     print(f"🏷️  Labels added: {', '.join(labels)}")
+```
+
+そして human-in-the-loop エンドポイントを配線します。フロントエンドにはすでに「Post to GitHub」ボタンがあり、画面にストリーミング済みの解析結果をそのまま POST してきます:
+
+```python
+class PostAnalysisRequest(BaseModel):
+    owner: str
+    repo: str
+    issue_number: int
+    body: str
 
 
-async def analyse_and_post(owner: str, repo: str, issue_number: int):
-    """Run analysis, post the result as a comment, and add a difficulty label."""
-    # ... runs the same analysis as analyse_cli() ...
-    # ... then calls post_comment() and add_labels() with the result ...
+@app.post("/post-analysis")
+async def post_analysis(req: PostAnalysisRequest):
+    """Human-triggered: post the analysis as a comment and add a difficulty label."""
+    await post_comment(req.owner, req.repo, req.issue_number, req.body)
+
+    import re
+    match = re.search(r"recommended skill level.*", req.body, re.IGNORECASE)
+    level_line = match.group(0).lower() if match else ""
+    for level in sorted(SKILL_LABELS, key=len, reverse=True):
+        if level in level_line:
+            await add_labels(req.owner, req.repo, req.issue_number, SKILL_LABELS[level])
+            break
+
+    return {"status": "posted"}
+```
+
+ラベル検出は (「メンタリングのヒント」内の表記に誤反応しないよう) **「Recommended Skill Level」の行だけ** をスキャンします:
+
+```python
+import re
+match = re.search(r"recommended skill level.*", analysis, re.IGNORECASE)
+level_line = match.group(0).lower() if match else ""
+for level in sorted(SKILL_LABELS, key=len, reverse=True):
+    if level in level_line:
+        await add_labels(owner, repo, issue_number, SKILL_LABELS[level])
+        break
 ```
 
 ### 触れるポイント
 
 - `post_comment` - GitHub Issues API への 1 つの POST で、分析結果を本文として投稿します
-- `add_labels` - `"good first issue"` や `"difficulty: senior"` のようなラベルを追加するための 1 つの POST です
-- `analyse_and_post` - 先ほどと同じエージェントループですが、完全なレスポンスを集めてから、それを GitHub に投稿します
-- シンプルなラベル対応付け: 分析テキストからスキルレベルのキーワードを見つけ、一致するラベルを選びます
+- `add_labels` - `"good first issue"` や `"difficulty: hard"` のようなラベルを追加するための 1 つの POST です
+- `/post-analysis` エンドポイント - **フロントエンドにはすでにストリーミング済みの解析結果がある** ので、ユーザーが「Post to GitHub」ボタンを押すと、その本文をサーバーに POST するだけです。サーバーはエージェントを再実行しません。Human-in-the-loop = 勝手にコメントが投稿されることはありません。
+- ラベル検出は **「Recommended Skill Level」の行だけ** をスキャンします (本文全体ではない)。これにより「メンタリングのヒント」に出てくる「junior」のような単語が誤ったラベルを引き起こすことを防ぎます。長いキーから順に試すので、`senior+` が `senior` より優先され、`mid-level` が `mid` より優先されます。
+- **`difficulty: easy / medium / hard / expert` のラベルは GitHub の組み込みではありません** — リポジトリごとに一度だけ作成しておく必要があります (Issues → Labels → New label)。さもないと GitHub が暗黙のうちにラベルを落とします。`good first issue` だけは組み込みです。
 - **トークンの権限**: **Issues: Read and Write** (きめ細かい) または `repo` スコープ (classic) を持つ `GITHUB_TOKEN` が必要です
 
 ### ライブデモ
 
-```bash
-python app.py post https://github.com/<OWNER>/<REPO>/issues/<NUMBER>
-```
+`python app.py serve` を起動した状態で、UI に issue URL を貼り、解析がストリーミングされるのを待ち、画面に出てきた「Post to GitHub」ボタンをクリックします。
 
-> 実行後、ブラウザに切り替えて、その Issue 上のコメントとラベルを見せます。「エージェントが Issue を分析し、レビューを投稿し、ラベル付けまでしました。しかも 1 つのコマンドからです。」
+> ブラウザに切り替えて、その Issue 上のコメントとラベルを見せます。「エージェントが Issue を分析し、**あなた** が結果をレビューし、**あなた** がボタンを押したからこそ投稿されました。エージェントが勝手に投稿することはありません。」
 
 ---
 
@@ -733,13 +794,13 @@ LANG=ja python app.py <日本語 issue の URL>
 | コンセプト | 出てくる場所 | 時刻 |
 |---|---|---|
 | `CopilotClient()` + `.start()` / `.stop()` | フェーズ 2a | 0:06 |
-| `create_session({"model": ...})` | フェーズ 2a | 0:06 |
+| `create_session(model=..., on_permission_request=..., github_token=...)` | フェーズ 2a | 0:06 |
 | `session.send_and_wait()` | フェーズ 2a | 0:07 |
 | `session.on()` を使ったイベントハンドラ | フェーズ 2b | 0:11 |
 | `session.send()` (non-blocking) | フェーズ 2b | 0:12 |
 | Pydantic params 付きの `@define_tool` | フェーズ 3 | 0:16 |
-| セッション設定内の `tools: [...]` | フェーズ 4 | 0:31 |
-| `instructions:` (system prompt) | フェーズ 4 | 0:32 |
+| `create_session` の `tools=[...]` 引数 | フェーズ 4 | 0:31 |
+| `session.send()` の前にシステムプロンプトを連結 | フェーズ 4 | 0:32 |
 | エージェント型のツールループ (マルチターン) | フェーズ 4 のデモ | 0:38 |
 | イベントキューからの SSE ストリーミング | フェーズ 5 | 0:44 |
 | GitHub API への書き戻し (表示のみ) | フェーズ 6a | 0:53 |
