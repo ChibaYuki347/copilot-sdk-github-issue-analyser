@@ -106,11 +106,7 @@
 | `<name>.md` | 英語版 (upstream と同一・原則手を入れない) |
 | `<name>.ja.md` | 日本語版 (新規追加) |
 | `glossary.ja.md` | 本ファイル |
-| `presenter-resources/decks/AI_Genius_Copilot_SDK_Ep3_JA_light.pdf` | 日本語スライド PDF (Microsoft ブランド Light) |
-| `presenter-resources/decks/AI_Genius_Copilot_SDK_Ep3_JA_dark.pdf`  | 日本語スライド PDF (Microsoft ブランド Dark) |
-| `presenter-resources/decks/AI_Genius_Copilot_SDK_Ep3_EN_light.pdf` | 英語スライド PDF (Microsoft ブランド Light、ja ブランチ生成版) |
-| `presenter-resources/decks/AI_Genius_Copilot_SDK_Ep3_EN_dark.pdf`  | 英語スライド PDF (Microsoft ブランド Dark、ja ブランチ生成版) |
-| `presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf` | 英語スライド PDF (upstream の既存ファイル — 触らない) |
+| `presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf` | 英語スライド PDF (upstream の既存ファイル) |
 
 ## 8. クレジット表記の標準フレーズ
 

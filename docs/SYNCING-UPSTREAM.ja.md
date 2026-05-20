@@ -81,7 +81,6 @@ git push origin ja
 | パターン | 例 |
 |---|---|
 | `<name>.ja.md` | `README.ja.md`, `AGENTS.ja.md`, `docs/RAI.ja.md`, `step-by-step/build-guide.ja.md` |
-| `<name>_<LANG>_<MODE>.pdf` | `presenter-resources/decks/AI_Genius_Copilot_SDK_Ep3_JA_light.pdf`, `..._JA_dark.pdf`, `..._EN_light.pdf`, `..._EN_dark.pdf` (Microsoft ブランド 4 種) |
 | 新規日本語専用ファイル | `step-by-step/glossary.ja.md`, `step-by-step/system-prompt.ja.md`, `docs/SYNCING-UPSTREAM.ja.md` (本ファイル) |
 
 ---

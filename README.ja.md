@@ -265,7 +265,6 @@ copilot-sdk-github-issue-analyser/
 - **[`LIVESTREAM_PREP.md`](presenter-resources/LIVESTREAM_PREP.md)** — 完全なセットアップチェックリストとタイムライン
 - **[`pre-stream-check.sh`](presenter-resources/pre-stream-check.sh)** — 自動化された環境検証スクリプト
 - **[`AI_Genius_Copilot_SDK_Ep3_EN.pdf`](presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf)** — 英語版プレゼンテーションデッキ (upstream の既存 PDF)
-- **[`decks/`](presenter-resources/decks/)** — Microsoft ブランドで再作成した日英 × Light/Dark の 4 種 PDF/PPTX (`AI_Genius_Copilot_SDK_Ep3_{JA,EN}_{light,dark}.{pptx,pdf}`)
 - **[`script.md`](presenter-resources/script.md)** — 詳細な 60 分版トーキングポイントとデモスクリプト
 
 ### 配信前のクイックスタート (30 分準備)
@@ -291,7 +290,7 @@ bash presenter-resources/pre-stream-check.sh
 1. **VS Code** (エディタ) — 左側で `app.py` を開きます
 2. **Terminal** (出力) — 下部でライブ実行を見せます
 3. **ブラウザー** (任意) — 右側でフェーズ 5 のデモ用に `http://localhost:8000` を開きます
-4. **スライドデッキ (PDF)** — `presenter-resources/decks/AI_Genius_Copilot_SDK_Ep3_JA_dark.pdf` (ライブ配信向け、画面外または第 2 モニター)。Microsoft ブランドの Light/Dark や英語版は `presenter-resources/decks/` 配下から好みで選択。
+4. **スライドデッキ (PDF)** — `presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf` (画面外または第 2 モニター)
 
 ### 準備しておく主要デモ
 
