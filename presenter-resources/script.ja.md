@@ -97,7 +97,9 @@ Write: imports block
 
 Copilot SDK のアプリは、どれも 3 つから始まります。クライアント、セッション、そして応答を受け取る方法です。まずは最小構成を書いてみましょう。
 
-**[CODE HIGHLIGHT]** 入力しながら、各行を順番に説明してください。
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: `client.start()` 〜 `create_session(...)` の **セットアップ部分はもう `app.py` に書かれています**。配信中に「ここはコピペ削減のためにすでに用意してあります」と伝えて、**読み上げて説明**しつつ、自分で書くのは `send_and_wait` の呼び出しから後だけにしてください。
+
+**[CODE HIGHLIGHT]** プリフィル済みの部分を上から順に説明してください。
 
 1. `CopilotClient()` - クライアントを作ります。設定は要りません。
 2. `await client.start()` - Copilot バックエンドに接続します。これは非同期なので `await` します。
@@ -123,6 +125,8 @@ Write: hello_world() function + temporary __main__ block
 ## フェーズ 2b - イベントによるストリーミング (0:10–0:16)
 
 では、ストリーミング版を書いてみましょう。同じ質問ですが、今度はトークンが 1 つずつ届く様子を見ます。
+
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: 2a と同じく、`client.start()` 〜 `create_session(...)` は **プリフィル済**です。配信中に書くのは **イベントハンドラ + `session.send()` + `done.wait()` の塊**だけです。
 
 ここではパターンが少し変わります。`send_and_wait` の代わりに、`session.on()` でイベントハンドラを登録し、そのあと `session.send()` を呼びます。こちらはノンブロッキングで、リクエストを投げるだけです。実際の処理はイベントハンドラ側で行います。
 
@@ -151,17 +155,20 @@ Write: hello_world_streaming() function, update __main__ to support hello-stream
 
 ツールは、エージェントが外の世界とやり取りする方法です。今のエージェントは話すことしかできず、実際には何もできません。それを今から変えます。GitHub Issue を読み、リポジトリを探索し、コードを検索し、ファイルを読む能力を持たせます。大事なのは、何ができるかを私たちが定義し、いつ・どう使うかはエージェントが決める、という点です。
 
-### 3a. GitHub API ヘルパー (~2 分)
+### 3a. GitHub API ヘルパー (~30 秒 ※プリフィル済)
 
 まずは小さなヘルパー関数です。4 つのツールすべてが GitHub API を呼ぶので、そこは 1 回だけ書いて共通化しておきます。
+
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: この関数は `app.py` に **すでに書かれています** ("Here's one we prepared earlier")。配信中はタイピングせず、**読み上げて何をする関数か説明するだけ** にします。元の 2 分から約 30 秒に短縮できます。
 
 **[CODE HIGHLIGHT]** 次の点を指摘してください。
 
 - `GITHUB_TOKEN` を環境変数から取得しています。これが GitHub への認証に使われます。
 - これは普通の同期関数です。特別なことはしていません。GET リクエストを投げて JSON を返しているだけです。
+- 「ライブで書くのは省略しました。同じパターンの関数を 4 回繰り返すより、ツール本体の中身に時間を使うほうが価値があるからです。」
 
 ```
-Write: github_api() helper function
+Already in app.py — just walk through it (no typing)
 ```
 
 ### 3b. ツール 1 - Issue を取得する (~3 分)
@@ -238,6 +245,8 @@ Write: TOOLS list + SYSTEM_PROMPT string
 
 `analyse_cli` 関数は、基本的には `hello_world_streaming` に、ツールとシステムプロンプトを付けたものです。パターンは同じで、クライアントを作り、セッションを作り、イベントハンドラを登録し、プロンプトを送って、idle を待ちます。
 
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: ここでも **`client = CopilotClient()` から `create_session(...)` までの一連のセットアップ + `tools=TOOLS` 渡しはプリフィル済**です。配信中に書くのは「**`TOOLS` リスト + `SYSTEM_PROMPT` + イベントハンドラ + `session.send(f"{SYSTEM_PROMPT}...")`**」の組み合わせだけです。
+
 **[CODE HIGHLIGHT]** イベントハンドラで新しく増えるのは 2 つです。
 
 - `tool.call` / `tool.execution_start` - エージェントがツールを使うと決めたときに発火します。どのツールを呼んでいるのかを表示するので、ターミナルでも流れを追えます。
@@ -289,9 +298,11 @@ Write: FastAPI app, static file mount, root + health endpoints
 Write: _parse_args() helper
 ```
 
-### 5c. SSE ストリーミング用ジェネレーター (~7 分)
+### 5c. SSE ストリーミング用ジェネレーター (~4 分 ※プリフィルで短縮)
 
 ここが Web アプリの中核なので、少し丁寧に見ていきます。
+
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: `stream_analysis` の **client/session セットアップ部分はプリフィル済**です (2a/2b/4 と同じパターンなので説明だけ)。配信中に書くのは **`queue = asyncio.Queue()` 以降** (イベント振り分け + SSE yield ループ) です。元の 7 分から約 4 分に短縮できます。
 
 **[CODE HIGHLIGHT]** ここでのアーキテクチャは、2 つの世界をつなぐ非同期キューです。
 
