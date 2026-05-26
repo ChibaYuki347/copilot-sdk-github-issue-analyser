@@ -106,11 +106,14 @@ load_dotenv()
 
 > **トーキングポイント**: 「すべての Copilot SDK アプリは 3 つのものから始まります。クライアント、セッション、そしてレスポンスを得る方法です。まずは絶対にいちばんシンプルな版から始めましょう。」
 
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: `app.py` には **`client = CopilotClient()` から `create_session(...)` までのセットアップ**がすでに**プリフィル**されています。書き写すのは `send_and_wait()` 呼び出しとレスポンス取り出し、後片付けの 3 行だけです。プリフィル部分は配信中に **読み上げて説明**しつつ、自分が書くのは下のスニペットの末尾だけです。
+
 ### 書くコード
 
 ```python
 async def hello_world():
     """Simplest example: send a prompt, get the full response back."""
+    # ↓↓↓ ここから create_session(...) までは app.py にプリフィル済み ↓↓↓
     client = CopilotClient()
     await client.start()
 
@@ -120,6 +123,9 @@ async def hello_world():
         on_permission_request=PermissionHandler.approve_all,
         github_token=token,
     )
+    # ↑↑↑ ここまでプリフィル ↑↑↑
+
+    # ↓↓↓ 配信中に「ここ」を書きます ↓↓↓
     response = await session.send_and_wait("What is the GitHub Copilot SDK in 2 sentences?")
     if response and getattr(response, "data", None) and hasattr(response.data, "content"):
         print(response.data.content)
@@ -149,11 +155,14 @@ python app.py hello
 
 > **トーキングポイント**: 「今のは動きましたが、レスポンス全体を待っていました。トークンがリアルタイムで届くのを見たいとしたらどうでしょうか。そして後では、エージェントがどのツールを呼び出しているかも見たいはずです。そこでイベントが出てきます。」
 
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: 2a と同じく、**`client.start()` 〜 `create_session(...)`** はプリフィルされています。配信中に書くのは「**イベントハンドラの登録 → send → done.wait()**」の塊です。
+
 ### 書くコード
 
 ```python
 async def hello_world_streaming():
     """Stream the response token by token using events."""
+    # ↓↓↓ プリフィル済 ↓↓↓
     client = CopilotClient()
     await client.start()
 
@@ -163,7 +172,9 @@ async def hello_world_streaming():
         on_permission_request=PermissionHandler.approve_all,
         github_token=token,
     )
+    # ↑↑↑ ここまでプリフィル ↑↑↑
 
+    # ↓↓↓ 配信中に「ここ」を書きます ↓↓↓
     done = asyncio.Event()
 
     def on_event(event):
@@ -197,9 +208,12 @@ python app.py hello-stream
 
 > **トーキングポイント**: 「ツールは、エージェントが外の世界とやり取りする方法です。普通の async Python 関数を書いて、スキーマのために Pydantic params を与えると、`@define_tool` デコレータがそれをエージェントに使えるようにします。いつ呼ぶかはエージェントが決めます。皆さんは何が可能かだけを定義します。」
 
-### 3a. GitHub API ヘルパー (先に書く、約 2 分)
+### 3a. GitHub API ヘルパー (プリフィル済、約 30 秒で読み上げ説明)
+
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: このヘルパー関数は **`app.py` にもう書かれています** ("Here's one we prepared earlier")。配信中は **読み上げて何をする関数か説明するだけ** で OK です。タイピングは不要なので、約 2 分 → 約 30 秒に短縮できます。
 
 ```python
+# app.py に既に書かれています — 配信中は説明するだけ
 def github_api(endpoint: str) -> dict:
     """Call the GitHub REST API (shared helper for all tools)."""
     import httpx
@@ -217,6 +231,8 @@ def github_api(endpoint: str) -> dict:
         resp.raise_for_status()
         return resp.json()
 ```
+
+> **触れるポイント**: 「これは 4 つのツール全部が GitHub API を叩くので、共通化しておきました。`GITHUB_TOKEN` があればヘッダに乗せて、無ければそのまま叩く、というだけのシンプルな関数です。これがあるおかげで、この後の 4 つのツールはそれぞれ `github_api("/repos/...")` のように呼ぶだけで済みます。」
 
 ### 3b. ツール 1 - Issue 詳細を取得する (約 3 分)
 
@@ -345,6 +361,8 @@ async def get_file_content(params: FileContentParams) -> str:
 > **トーキングポイント**: 「システムプロンプトは、エージェントがどう振る舞うかを形作ります。ツール一覧は、何ができるかを伝えます。この 2 つを合わせたものが、皆さんのエージェントです。」
 
 ### 書くコード
+
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: `analyse_cli` の **client/session セットアップ部分 (lines 392-401)** はプリフィルされています。配信中に新しく書くのは **`TOOLS` リスト** + **`SYSTEM_PROMPT`** + **イベントハンドラ** + **`session.send()`** の組み合わせです。プリフィル部分は読み上げで「2a/2b と同じ流れ、ただし `tools=TOOLS` が増えている」と説明するだけで OK です。
 
 ```python
 TOOLS = [get_github_issue, get_repo_structure, search_code_in_repo, get_file_content]
@@ -495,17 +513,19 @@ def _parse_args(raw):
     return {}
 ```
 
-### 5c. SSE ストリーミングジェネレーター (約 7 分)
+### 5c. SSE ストリーミングジェネレーター (約 4 分 ※プリフィルにより約 3 分短縮)
 
 > 「ここが Web アプリの中核です。SDK のイベントを async キューに橋渡しし、ジェネレーターから SSE 形式の文字列を yield します。」
+
+> 📌 **upstream 65ce38b (2026-05-26) で更新**: `stream_analysis` の **client/session セットアップ** もプリフィル済みです。配信中に書くのは **`queue = asyncio.Queue()` 以降** (イベント振り分け + SSE yield ループ) です。なお、上記の **5a / 5d (エンドポイント側) も `app_final.py` に近い形でプリフィル**されており、`@app.get("/analyse/stream")` 自体は配線するだけです。
 
 ```python
 async def stream_analysis(owner: str, repo: str, issue_number: int):
     """Async generator that yields Server-Sent Events for the frontend."""
+    # ↓↓↓ プリフィル済 ↓↓↓
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     session = await client.create_session(
         model="gpt-4.1",
@@ -513,7 +533,9 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
         on_permission_request=PermissionHandler.approve_all,
         github_token=token,
     )
+    # ↑↑↑ ここまでプリフィル ↑↑↑
 
+    # ↓↓↓ 配信中に「ここ」を書きます ↓↓↓
     queue = asyncio.Queue()
 
     def on_event(event):
