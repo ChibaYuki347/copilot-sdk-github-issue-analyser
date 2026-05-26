@@ -517,6 +517,21 @@ SKILL_LABELS = {
     "senior+": ["difficulty: expert"],
 }
 
+# 日本語モード対応: agent が日本語で出力した skill level を canonical な英語キーへ橋渡しする。
+# (SYSTEM_PROMPT_JA は「ジュニア / ミドル / シニア / シニア+」と出力するよう指示している)
+SKILL_LEVEL_ALIASES = {
+    # English aliases (SYSTEM_PROMPT_EN)
+    "junior": "junior",
+    "mid-level": "mid-level",
+    "senior+": "senior+",
+    "senior": "senior",
+    # Japanese aliases (SYSTEM_PROMPT_JA)
+    "ジュニア": "junior",
+    "ミドル": "mid-level",
+    "シニア+": "senior+",
+    "シニア": "senior",
+}
+
 # These functions use the GitHub REST API to post comments and add labels. 
 # The agent will call these when the user clicks the button in the UI.
 async def post_comment(owner: str, repo: str, issue_number: int, body: str):
@@ -568,15 +583,38 @@ async def post_analysis(req: PostAnalysisRequest):
     # Pull just the 'Recommended Skill Level' line to avoid matching stray
     # words like 'junior' in the Mentorship Notes. Longest key wins so
     # 'senior+' beats 'senior' and 'mid-level' beats 'mid'.
+    # 日本語モードでは agent が「推奨スキルレベル: シニア+」のように出力するため、
+    # regex とエイリアスマップで EN/JA 両方を検出する。
     import re
-    match = re.search(r"recommended skill level.*", req.body, re.IGNORECASE) # Find the line that contains "Recommended Skill Level" and get the level from it
+    import httpx
+    match = re.search(r"(recommended skill level|推奨スキルレベル).*", req.body, re.IGNORECASE)
     level_line = match.group(0).lower() if match else ""
-    for level in sorted(SKILL_LABELS, key=len, reverse=True):
-        # Based on the levels listed in our SKILL_LABELS dict,
-        # Find any matching levels to be added as labels on the issue.
-        if level in level_line:
-            await add_labels(req.owner, req.repo, req.issue_number, SKILL_LABELS[level])
+    canonical_level = None
+    for alias in sorted(SKILL_LEVEL_ALIASES, key=len, reverse=True):
+        if alias.lower() in level_line:
+            canonical_level = SKILL_LEVEL_ALIASES[alias]
             break
+    if canonical_level:
+        try:
+            await add_labels(req.owner, req.repo, req.issue_number, SKILL_LABELS[canonical_level])
+        except httpx.HTTPStatusError as e:
+            # Most common cause is the difficulty: easy/medium/hard/expert labels
+            # not yet existing in the target repo (GitHub returns 422). Surface a
+            # clear warning so the workshop demo doesn't crash on this.
+            if e.response.status_code == 422:
+                print(
+                    f"⚠️  Could not add labels {SKILL_LABELS[canonical_level]} — "
+                    f"the target repo {req.owner}/{req.repo} probably does not have "
+                    f"these labels created yet. Run presenter-resources/setup-demo-labels.sh "
+                    f"to create them."
+                )
+            else:
+                raise
+    else:
+        print(
+            f"⚠️  Could not detect a skill level in the analysis body — no labels added. "
+            f"Expected one of: {', '.join(SKILL_LEVEL_ALIASES)}"
+        )
 
     return {"status": "posted"}
 
