@@ -43,21 +43,22 @@ import extras_usage  # noqa: F401
 
 async def hello_world():
     """Simplest example: send a prompt, get the full response back."""
-    client = CopilotClient()
-    await client.start()
+    client = CopilotClient() # Create a client to manage sessions and communication with the API
+    await client.start() # Start the client (establishes connection, authentication, etc.)
 
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") # Get the GitHub token from environment variables
     session = await client.create_session(
-        model="gpt-4.1",
-        on_permission_request=PermissionHandler.approve_all,
-        github_token=token,
+        model="gpt-4.1", # Set your model
+        on_permission_request=PermissionHandler.approve_all, # Auto approve any permsision requests (e.g. for tool use), you could add a custom handler here to review them instead of auto-approving
+        github_token=token, # Our token from our .env file (or environment variable)
     )
+    
     response = await session.send_and_wait("What is the GitHub Copilot SDK in 2 sentences?")
     if response and getattr(response, "data", None) and hasattr(response.data, "content"):
         print(response.data.content)
 
-    await session.disconnect()
-    await client.stop()
+    await session.disconnect() # Cleanly close the session
+    await client.stop() # Stop the client (close connections, clean up resources, etc.)
 
 # Command to run this phase: python app_final.py hello
 
@@ -292,9 +293,9 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
     done = asyncio.Event()
 
 
-    # Set up handling of the different event types. 
-    # assistant.message is the main response stream, 
-    # but we also watch for tool calls to display them and session idle to finish up
+    # Handle the different types of events the SDK emits. This include tool calls now.
+    # Events might have parameters this time, so this is slightly more complex than before. 
+    # (The helper function _parse_args at the bottom can handle the various formats the SDK might give us.)
     def on_event(event):
         name = event.type.value if hasattr(event.type, "value") else str(event.type)
         if name == "assistant.message":
@@ -338,21 +339,29 @@ app = FastAPI(title="GitHub Issue Complexity Analyser")
 static_dir = Path(__file__).parent / "src" / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-
+# Serve the main HTML page, where the user can input a GitHub issue URL and trigger the analysis.
 @app.get("/")
 async def root():
     return FileResponse(static_dir / "index.html")
 
 
+# A simple health check endpoint to verify the server is running.
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
 
 
-# There is a helper function _parse_args we wrote for you (at the bottom of the file) that you can use to 
-# handle the various formats tool arguments might come in (dict, JSON string, Pydantic model). 
-
-
+### Endpoint to start the analysis and stream results back to the frontend.###
+# This is the route we care about the most, it will stream the analysis results to the frontend
+# It will call the function that we'll write below
+@app.get("/analyse/stream")
+async def analyse_stream(owner: str, repo: str, issue_number: int):
+    """Stream analysis results to the frontend via SSE."""
+    return StreamingResponse(
+        stream_analysis(owner, repo, issue_number),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+    )
 
 
 async def stream_analysis(owner: str, repo: str, issue_number: int):
@@ -370,7 +379,10 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
         github_token=token,
     )
 
+    # Instead of event handling we'll use a queue to collect messages and tool calls, 
+    # which we can then stream to the frontend in order.
     queue = asyncio.Queue()
+
     
     # Set up event handling to push messages and tool calls into the queue for streaming to the frontend.
     def on_event(event):
@@ -379,7 +391,7 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
         if name == "assistant.message":
             content = getattr(event.data, "content", "")
             if content and content.strip():
-                queue.put_nowait(("message", content))
+                queue.put_nowait(("message", content)) # No wait — we want to stream in real-time as events come in
 
         elif name == "tool.execution_start":
             # Emitted once per tool invocation, before the tool runs
@@ -398,7 +410,8 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
         f"{SYSTEM_PROMPT}\n\nPlease analyse GitHub issue #{issue_number} in {owner}/{repo}."
     )
 
-    # Stream events to the frontend as they come in. The frontend will render them as chat bubbles and tool call notifications.
+    # Stream events to the frontend as they come in (instead of print to terminal)
+    # We'll look for the same events as before (assistant.message and tool.execution_start)
     while True:
         event_type, data = await queue.get()
         if event_type == "message":
@@ -413,18 +426,11 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
     await client.stop()
 
 
-@app.get("/analyse/stream")
-async def analyse_stream(owner: str, repo: str, issue_number: int):
-    """Stream analysis results to the frontend via SSE."""
-    return StreamingResponse(
-        stream_analysis(owner, repo, issue_number),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
-    )
-
-
 # Command to run this phase: python app_final.py serve
 # Then open http://localhost:8000 in the browser and enter the repo and issue number
+
+
+
 
 # =================================================================
 # PHASE 6a — Write Back to GitHub (human-triggered via UI button)
@@ -438,6 +444,11 @@ async def analyse_stream(owner: str, repo: str, issue_number: int):
 #   - Fine-grained tokens: Issues → Read and Write
 # =================================================================
 
+### We've done these one for you for time, but you can try writing your own if you want!###
+# The GitHub API docs are here: https://docs.github.com/rest/issues/comments#create-an-issue-comment 
+# and here: https://docs.github.com/rest/issues/labels#add-labels-to-an-issue
+
+# These are the labels we'll add based on the recommended skill level the agent outputs in its analysis.
 SKILL_LABELS = {
     "junior": ["good first issue", "difficulty: easy"],
     "mid-level": ["difficulty: medium"],
@@ -445,7 +456,8 @@ SKILL_LABELS = {
     "senior+": ["difficulty: expert"],
 }
 
-
+# These functions use the GitHub REST API to post comments and add labels. 
+# The agent will call these when the user clicks the button in the UI.
 async def post_comment(owner: str, repo: str, issue_number: int, body: str):
     """Post a comment on a GitHub issue."""
     import httpx
@@ -461,6 +473,7 @@ async def post_comment(owner: str, repo: str, issue_number: int, body: str):
     print(f"💬 Comment posted to {owner}/{repo}#{issue_number}")
 
 
+# This function adds labels to the issue based on the recommended skill level the agent outputs in its analysis.
 async def add_labels(owner: str, repo: str, issue_number: int, labels: list[str]):
     """Add labels to a GitHub issue."""
     import httpx
@@ -475,14 +488,17 @@ async def add_labels(owner: str, repo: str, issue_number: int, labels: list[str]
         resp.raise_for_status()
     print(f"🏷️  Labels added: {', '.join(labels)}")
 
-
+# The request body for the post_analysis endpoint, 
+# which includes the repo and issue info plus the analysis text to post as a comment.
 class PostAnalysisRequest(BaseModel):
     owner: str
     repo: str
     issue_number: int
     body: str
 
-
+# This endpoint is called as part of the "Post to GitHub" button flow in the frontend.
+# It takes the analysis text and posts it as a comment, 
+# then looks for the recommended skill level in the analysis to determine which labels to add.
 @app.post("/post-analysis")
 async def post_analysis(req: PostAnalysisRequest):
     """Human-triggered: post the analysis as a comment and add a difficulty label."""
@@ -492,9 +508,11 @@ async def post_analysis(req: PostAnalysisRequest):
     # words like 'junior' in the Mentorship Notes. Longest key wins so
     # 'senior+' beats 'senior' and 'mid-level' beats 'mid'.
     import re
-    match = re.search(r"recommended skill level.*", req.body, re.IGNORECASE)
+    match = re.search(r"recommended skill level.*", req.body, re.IGNORECASE) # Find the line that contains "Recommended Skill Level" and get the level from it
     level_line = match.group(0).lower() if match else ""
     for level in sorted(SKILL_LABELS, key=len, reverse=True):
+        # Based on the levels listed in our SKILL_LABELS dict,
+        # Find any matching levels to be added as labels on the issue.
         if level in level_line:
             await add_labels(req.owner, req.repo, req.issue_number, SKILL_LABELS[level])
             break
