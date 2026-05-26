@@ -53,6 +53,7 @@ async def hello_world():
 
 
 
+# Command to run this phase: python app_final.py hello
 
 
 # =================================================================
@@ -65,9 +66,32 @@ async def hello_world():
 
 async def hello_world_streaming():
     """Stream the response token by token using events."""
-    pass
+    
+    # Setting up our client and session is the same as before
+    client = CopilotClient()
+    await client.start()
+
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
+
+    ### Now we add event handlers to see the response as it comes in. ###
+    # The SDK emits events as the session runs. We listen for:
 
 
+
+    # Register the event handler before sending the message
+
+
+
+    # Wait until the session is idle (response is complete) before proceeding.
+
+
+
+# Command to run this phase: python app_final.py hello-stream
 
 
 
@@ -79,11 +103,25 @@ async def hello_world_streaming():
 # when and how to call it. That's the "agentic" part.
 # =================================================================
 
+
+# Here's one we prepared earlier - a helper function to call the GitHub API.
+# We'll use this inside our tools to fetch issue details, repo structure, search code, and read file contents.
 def github_api(endpoint: str) -> dict:
     """Call the GitHub REST API (shared helper for all tools)."""
-    pass
+    import httpx
 
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "copilot-livestream",
+    }
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
 
+    with httpx.Client() as http:
+        resp = http.get(f"https://api.github.com{endpoint}", headers=headers)
+        resp.raise_for_status()
+        return resp.json()
 
 
 
@@ -147,12 +185,12 @@ async def get_file_content(params: FileContentParams) -> str:
 # decides WHICH tools to call and in what order.
 # =================================================================
 
-# List the tools we just made
+### List the tools we just made ###
 
 # TOOLS = 
 
 
-# Create the system prompt that guides the agent's behaviour. 
+### Create the system prompt that guides the agent's behaviour. ###
 # This is where you inject the "personality" and instructions for the agent. 
 # You can include formatting instructions, reasoning steps, and any constraints or guidelines
 
@@ -163,19 +201,26 @@ async def get_file_content(params: FileContentParams) -> str:
 # call tools, has a system prompt, and has logic to handle output for different tool calls
 async def analyse_cli(owner: str, repo: str, issue_number: int):
     """Run analysis in the terminal with streaming output."""
+    print(f"\n🔍 Analysing issue #{issue_number} in {owner}/{repo}...\n") # Just a print to show we have started
 
+    client = CopilotClient()
+    await client.start()
 
+    # session setup is nearly the same as before, but now we include our system prompt and tools list.
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS, # We declare our list of tools here 
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
 
+    # Set up the event handlers again
+    done = asyncio.Event()
 
-    # Set up the session but give it tools this time
-
-
-
-
-    # Set up handling of the different event types. 
-    # assistant.message is the main response stream, 
-    # but we also watch for tool calls to display them and session idle to finish up
-
+    # Handle the different types of events the SDK emits. This include tool calls now.
+    # Events might have parameters this time, so this is slightly more complex than before. 
+    # (The helper function _parse_args at the bottom can handle the various formats the SDK might give us.)
 
 
 
@@ -185,8 +230,11 @@ async def analyse_cli(owner: str, repo: str, issue_number: int):
 
 
 
+
+
+
 # Command to run this phase: python app.py <owner> <repo> <issue_number>
-# Example: python app.py microsoft vscode 12345
+# Example: python app.py reneenoble demo_project_with_issues 9
 
 
 # =================================================================
@@ -215,6 +263,9 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 # Endpoint to start the analysis and stream results back to the frontend. 
+# This is the route we care about the most, it will stream the analysis results to the frontend
+# It will call the function that we'll write below
+
 
 
 
@@ -226,7 +277,22 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 async def stream_analysis(owner: str, repo: str, issue_number: int):
     """Async generator that yields Server-Sent Events for the frontend."""
 
-    # Same session setup as above
+        # Same session setup as above
+    client = CopilotClient()
+    await client.start()
+
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    session = await client.create_session(
+        model="gpt-4.1",
+        tools=TOOLS,
+        on_permission_request=PermissionHandler.approve_all,
+        github_token=token,
+    )
+
+
+    # Instead of event handling we'll use a queue to collect messages and tool calls, 
+    # which we can then stream to the frontend in order.
+
 
 
     # Set up event handling to push messages and tool calls into the queue for streaming to the frontend.
@@ -235,14 +301,17 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
             # Emitted once per tool invocation, before the tool runs
 
 
+
+
+
     # Send off the same message as before, but now the GitHub Issue info has come 
     # from query parameters collected when the analyse/stream endpoint calls this function.
 
 
 
 
-    # Stream events to the frontend as they come in. The frontend will render them as chat bubbles and tool call notifications.
-
+    # Stream events to the frontend as they come in (instead of print to terminal)
+    # We'll look for the same events as before (assistant.message and tool.execution_start)
 
 
 
@@ -265,28 +334,80 @@ async def stream_analysis(owner: str, repo: str, issue_number: int):
 #   - Fine-grained tokens: Issues → Read and Write
 # =================================================================
 
-# Create some tags/categories
-# SKILL_LABELS = 
+### We've done these one for you for time, but you can try writing your own if you want!###
+# The GitHub API docs are here: https://docs.github.com/rest/issues/comments#create-an-issue-comment 
+# and here: https://docs.github.com/rest/issues/labels#add-labels-to-an-issue
 
-# Helper function to post a comment to a GitHub issue
+# These are the labels we'll add based on the recommended skill level the agent outputs in its analysis.
+SKILL_LABELS = {
+    "junior": ["good first issue", "difficulty: easy"],
+    "mid-level": ["difficulty: medium"],
+    "senior": ["difficulty: hard"],
+    "senior+": ["difficulty: expert"],
+}
+
+# These functions use the GitHub REST API to post comments and add labels. 
+# The agent will call these when the user clicks the button in the UI.
 async def post_comment(owner: str, repo: str, issue_number: int, body: str):
-    pass
+    """Post a comment on a GitHub issue."""
+    import httpx
+
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    async with httpx.AsyncClient() as http:
+        resp = await http.post(
+            f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+            json={"body": body},
+        )
+        resp.raise_for_status()
+    print(f"💬 Comment posted to {owner}/{repo}#{issue_number}")
 
 
-# Helper function to add labels to a GitHub issue
+# This function adds labels to the issue based on the recommended skill level the agent outputs in its analysis.
 async def add_labels(owner: str, repo: str, issue_number: int, labels: list[str]):
-    pass
+    """Add labels to a GitHub issue."""
+    import httpx
 
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    async with httpx.AsyncClient() as http:
+        resp = await http.post(
+            f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/labels",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+            json={"labels": labels},
+        )
+        resp.raise_for_status()
+    print(f"🏷️  Labels added: {', '.join(labels)}")
 
-# The type of the request body we expect from the frontend when the user clicks "Post to GitHub".
+# The request body for the post_analysis endpoint, 
+# which includes the repo and issue info plus the analysis text to post as a comment.
 class PostAnalysisRequest(BaseModel):
-    pass
+    owner: str
+    repo: str
+    issue_number: int
+    body: str
 
-# This endpoint receives the analysis from the frontend when the user clicks "Post to GitHub".
+# This endpoint is called as part of the "Post to GitHub" button flow in the frontend.
+# It takes the analysis text and posts it as a comment, 
+# then looks for the recommended skill level in the analysis to determine which labels to add.
 @app.post("/post-analysis")
 async def post_analysis(req: PostAnalysisRequest):
     """Human-triggered: post the analysis as a comment and add a difficulty label."""
-    pass
+    await post_comment(req.owner, req.repo, req.issue_number, req.body)
+
+    # Pull just the 'Recommended Skill Level' line to avoid matching stray
+    # words like 'junior' in the Mentorship Notes. Longest key wins so
+    # 'senior+' beats 'senior' and 'mid-level' beats 'mid'.
+    import re
+    match = re.search(r"recommended skill level.*", req.body, re.IGNORECASE) # Find the line that contains "Recommended Skill Level" and get the level from it
+    level_line = match.group(0).lower() if match else ""
+    for level in sorted(SKILL_LABELS, key=len, reverse=True):
+        # Based on the levels listed in our SKILL_LABELS dict,
+        # Find any matching levels to be added as labels on the issue.
+        if level in level_line:
+            await add_labels(req.owner, req.repo, req.issue_number, SKILL_LABELS[level])
+            break
+
+    return {"status": "posted"}
 
 
 # =================================================================
@@ -303,10 +424,18 @@ async def post_analysis(req: PostAnalysisRequest):
 # A function that prevents the agent from reading files outside the repo 
 # or sensitive files like .env or credentials.
 
-
-
-
-
+# async def validate_tool_args(event):
+#     """Block dangerous tool arguments before execution."""
+#     if event.data.tool_name == "get_file_content":
+#         path = event.data.arguments.get("path", "")
+#         if ".." in path or path.startswith("/") or path.startswith("~"):
+#             print(f"  🛑 BLOCKED: unsafe path — {path}")
+#             return {"decision": "reject", "message": "Blocked: unsafe path"}
+#         sensitive = [".env", ".git/", "secrets", "credentials", "token"]
+#         if any(s in path.lower() for s in sensitive):
+#             print(f"  🛑 BLOCKED: sensitive file — {path}")
+#             return {"decision": "reject", "message": "Blocked: sensitive file"}
+#     return {"decision": "allow"}
 
 
 
