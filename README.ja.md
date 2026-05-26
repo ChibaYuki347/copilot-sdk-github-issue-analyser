@@ -13,7 +13,12 @@ GitHub の Issue をコンテキストの中で解析するインテリジェン
 
 GitHub Copilot SDK の機能を実演するために、**60 分のライブ配信**で構築されました。
 
-> **📌 注**: これは一般公開向けに整えたプロジェクトの**クリーン版**です。計画と反復は[別のリポジトリ](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser)で行われました。一緒に追いかける主要なファイルは [`app.py`](app.py) (構築するコード) と [`step-by-step/build-guide.md`](step-by-step/build-guide.md) (フェーズごとのガイド) です。
+> **📌 注**: これは一般公開向けに整えたプロジェクトの**クリーン版**です。計画と反復は[別のリポジトリ](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser)で行われました。
+
+> **📌 このリポの使い方** — GitHub Copilot SDK を学ぶための教材です。**自分のロール** に合わせて入口を選んでください:
+> - **実際に手を動かして学ぶ場合**: [`step-by-step/build-guide.ja.md`](step-by-step/build-guide.ja.md) に従って [`app.py`](app.py) を穴埋めしながら構築します
+> - **動いているところだけ見たい場合**: [`app_final.py`](app_final.py) を実行します (完成版)
+> - **自分が発表する場合**: [`presenter-resources/`](presenter-resources/) からスタート ([`pre-stream-check.sh`](presenter-resources/pre-stream-check.sh) や [`script.ja.md`](presenter-resources/script.ja.md) を含む)
 
 > 🇯🇵 **日本語デモを観ている方へ**: 同じ Renee Noble さんが作った **前身プロトタイプ** [`reneenoble/gh-copilot-sdk-repo-analyser`](https://github.com/reneenoble/gh-copilot-sdk-repo-analyser) (2026-01〜03) もありますが、ライブ配信で構築するのは**このリポジトリ**です。前身プロトタイプには `docs/architecture.png` という綺麗なアーキテクチャ図があり、SDK の使い方を別アングルから学びたい方は併せて参照してください。両者は同じ 4 ツール (`get_github_issue` 等) を使い、ロジックも近いです。
 
@@ -70,30 +75,19 @@ GitHub Copilot SDK の機能を実演するために、**60 分のライブ配�
 
 ## 🏗️ アーキテクチャ
 
-```
-┌──────────────────────────────────────────┐
-│  ブラウザー (ビルド済みフロントエンド)    │
-│  EventSource → チャットバブルを描画       │
-└────────────────┬─────────────────────────┘
-                 │ SSE (Server-Sent Events)
-                 ▼
-┌──────────────────────────────────────────┐
-│  FastAPI サーバー (app.py)               │
-│  /analyse/stream + /post-analysis        │
-│  非同期キューが SDK → SSE を橋渡し       │
-└────────────────┬─────────────────────────┘
-                 │ Copilot SDK
-                 ▼
-┌──────────────────────────────────────────┐
-│  Copilot バックエンド (gpt-4.1)          │
-│  レスポンスとツール呼び出しを生成         │
-└────────────────┬─────────────────────────┘
-                 │ ツール呼び出し
-                 ▼
-┌──────────────────────────────────────────┐
-│  GitHub REST API                         │
-│  Issues · Contents · コード検索          │
-└──────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Browser["🖥️ ブラウザ (ビルド済みフロントエンド)<br/>EventSource → チャットバブルを描画"]
+    Server["⚙️ FastAPI サーバー (app.py)<br/>/analyse/stream + /post-analysis<br/>非同期キューが SDK → SSE を橋渡し"]
+    Copilot["🤖 Copilot バックエンド (gpt-4.1)<br/>レスポンスとツール呼び出しを生成"]
+    GitHub["🐙 GitHub REST API<br/>Issues · Contents · コード検索"]
+
+    Browser -- "SSE (Server-Sent Events)" --> Server
+    Server -- "Copilot SDK" --> Copilot
+    Copilot -- "ツール呼び出し" --> GitHub
+    GitHub -- "JSON レスポンス" --> Copilot
+    Copilot -- "ストリーミングトークン + ツールイベント" --> Server
+    Server -- "SSE イベント" --> Browser
 ```
 
 ---
@@ -180,7 +174,7 @@ export GITHUB_TOKEN=ghp_your_token_here
 4. **Generate token** をクリックしてコピーします
 5. `.env` に追加します: `GITHUB_TOKEN=ghp_...` (または上の例のように export します)
 
-### 使い方
+### 使い方 (ターミナルから)
 
 ```bash
 # SDK をテストします (フェーズ 2a: 最も単純な呼び出し)
@@ -190,23 +184,35 @@ python app.py hello
 python app.py hello-stream
 
 # URL で Issue を解析します
-python app.py https://github.com/microsoft/vscode/issues/12345
+python app.py https://github.com/reneenoble/demo_project_with_issues/issues/3
 
 # owner/repo/number で解析します
-python app.py microsoft vscode 12345
+python app.py reneenoble demo_project_with_issues 3
 
-# 日本語モードで Issue を解析します
-LANG=ja python app.py https://github.com/microsoft/vscode/issues/12345
+# 日本語モードで Issue を解析します (app_final.py 側でのみ有効)
+LANG=ja APP_LANG=ja python app_final.py https://github.com/VOICEVOX/voicevox/issues/2723
 
-# Web UI を起動します
+# Web UI を起動します (UI 上で "Post to GitHub" ボタンから書き戻し)
 python app.py serve
 
-# 日本語モードで Web UI を起動します
-LANG=ja python app.py serve
-
-# 解析して結果を GitHub に書き戻します
-python app.py post https://github.com/your-org/your-repo/issues/123
+# 日本語モードで Web UI を起動します (app_final.py 側)
+LANG=ja APP_LANG=ja python app_final.py serve
 ```
+
+> ⚠️ **CLI からの `post` サブコマンドは廃止されました** (upstream cd352ac)。書き戻しは Web UI の `Post to GitHub` ボタン (Human-in-the-loop) のみです。
+
+---
+
+### ▶️ VS Code から実行する (Run & Debug)
+
+`app.py` (配信中に構築するコード) と `app_final.py` (完成版) のどちらも、ターミナルコマンドを覚えなくても VS Code の **Run and Debug** ビュー (⇧⌘D / Ctrl+Shift+D) から起動できます。本リポには [`.vscode/launch.json`](.vscode/launch.json) が同梱されているので、ドロップダウンから 1 つ選ぶだけで動きます:
+
+| 起動設定 | 実行するもの | ポート | 使い分け |
+|---|---|---|---|
+| **Run Webapp Server** | `app.py serve` | `http://localhost:8000` | ライブ配信で**あなたが構築している**コード |
+| **Run Webapp Server (final)** | `app_final.py serve` | `http://localhost:8001` | 完成版のリファレンス実装 |
+
+> 💡 ポートを `8000` と `8001` に分けてあるので、**同時起動してもぶつかりません**。ライブ配信中に「自分のコード」と「完成版」を並べて見比べたい場面で便利です。
 
 ---
 
@@ -214,26 +220,34 @@ python app.py post https://github.com/your-org/your-repo/issues/123
 
 ```
 copilot-sdk-github-issue-analyser/
-├── app.py                  # ⭐ ライブ配信で構築するメインファイル (CLI + API + ツール)
+├── app.py                       # ⭐ ライブ配信で構築する穴埋めスキャフォールド (CLI + API + ツール)
+├── app_final.py                 # ⭐ 完成版 (i18n も実装済み、APP_LANG=ja で日本語化)
+├── extras_usage.py              # 任意の token usage ロガー (SHOW_USAGE=1 で有効化)
+├── .vscode/
+│   └── launch.json              # ⭐ "Run Webapp Server" / "Run Webapp Server (final)" の 2 設定
 ├── src/
-│   ├── hello_world.py      # 最小の SDK 例 (ここから始めます！)
-│   └── static/             # ビルド済み Web フロントエンド (HTML/CSS/JS)
+│   ├── hello_world.py           # 最小の SDK 例 (ここから始めます！)
+│   └── static/                  # ビルド済み Web フロントエンド (HTML/CSS/JS、Post to GitHub ボタンを含む)
 ├── step-by-step/
-│   └── build-guide.md      # ⭐ フェーズごとのビルド計画 (これに沿って進めます！)
-├── presenter-resources/    # ⭐ 発表者専用資料
+│   ├── build-guide.md           # フェーズごとのビルド計画 (英語版)
+│   ├── build-guide.ja.md        # ⭐ フェーズごとのビルド計画 (日本語版・これに沿って進めます！)
+│   └── glossary.ja.md           # ⭐ 日本語版 用語集 (翻訳の統一基準)
+├── presenter-resources/         # ⭐ 発表者専用資料
 │   ├── LIVESTREAM_PREP.md
 │   ├── pre-stream-check.sh
-│   ├── script.md
+│   ├── script.md / script.ja.md
+│   ├── demo-issue-candidates.md # ⭐ 日本語版で使う Issue 候補 (VOICEVOX 等)
 │   └── AI_Genius_Copilot_SDK_Ep3_EN.pdf
 ├── docs/
-│   ├── RAI.md              # 責任ある AI (RAI) のメモ
-│   └── architecture.png    # アーキテクチャ図
-├── pyproject.toml          # Python 依存関係
-├── AGENTS.md               # Copilot 用のエージェント指示
-└── README.md               # 英語版
+│   ├── RAI.md / RAI.ja.md       # 責任ある AI (RAI) のメモ
+│   ├── SYNCING-UPSTREAM.ja.md   # ⭐ upstream 同期手順
+│   └── architecture.png         # アーキテクチャ図
+├── pyproject.toml               # Python 依存関係
+├── AGENTS.md / AGENTS.ja.md     # Copilot 用のエージェント指示
+└── README.md / README.ja.md     # 英語版 / 日本語版
 ```
 
-> **💡 主要ファイル**: `app.py` はライブ配信で構築するコードで、`step-by-step/build-guide.md` はフェーズごとのガイドです。
+> **💡 主要ファイル**: ライブ配信で**実際にコードを書き足す**のは [`app.py`](app.py)、**ガイド** として並走させるのは [`step-by-step/build-guide.ja.md`](step-by-step/build-guide.ja.md)、**i18n 実装** や日本語デモを動かすときに使うのは [`app_final.py`](app_final.py) です。
 
 ---
 
