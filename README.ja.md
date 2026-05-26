@@ -235,6 +235,7 @@ copilot-sdk-github-issue-analyser/
 ├── presenter-resources/         # ⭐ 発表者専用資料
 │   ├── LIVESTREAM_PREP.md
 │   ├── pre-stream-check.sh
+│   ├── setup-demo-labels.sh     # ⭐ デモ先 repo に difficulty: easy/medium/hard/expert を一括作成
 │   ├── script.md / script.ja.md
 │   ├── demo-issue-candidates.md # ⭐ 日本語版で使う Issue 候補 (VOICEVOX 等)
 │   └── AI_Genius_Copilot_SDK_Ep3_EN.pdf
@@ -278,6 +279,7 @@ copilot-sdk-github-issue-analyser/
 このライブ配信を発表する場合は、**[`presenter-resources/`](presenter-resources/) フォルダ**を参照してください。以下を含む、発表者向けの全資料があります:
 - **[`LIVESTREAM_PREP.md`](presenter-resources/LIVESTREAM_PREP.md)** — 完全なセットアップチェックリストとタイムライン
 - **[`pre-stream-check.sh`](presenter-resources/pre-stream-check.sh)** — 自動化された環境検証スクリプト
+- **[`setup-demo-labels.sh`](presenter-resources/setup-demo-labels.sh)** — デモ先リポジトリに `difficulty: easy/medium/hard/expert` ラベルを一括作成 (フェーズ 6a の前提)
 - **[`AI_Genius_Copilot_SDK_Ep3_EN.pdf`](presenter-resources/AI_Genius_Copilot_SDK_Ep3_EN.pdf)** — 英語版プレゼンテーションデッキ (upstream の既存 PDF)
 - **[`script.md`](presenter-resources/script.md)** — 詳細な 60 分版トーキングポイントとデモスクリプト
 

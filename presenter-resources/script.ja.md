@@ -363,7 +363,7 @@ Write: Updated __main__ with serve command
 
 1. `post_comment` - GitHub Issues API への POST が 1 回です。解析結果のテキストをコメント本文として送ります。API を 1 回呼ぶだけで、評価が Issue 上に現れます。
 
-2. `add_labels` - こちらも POST でラベルを追加します。`SKILL_LABELS` というマッピングがあり、評価結果を適切なラベルに変換します。もしエージェントが「Junior」と言ったら、`good first issue` と `difficulty: easy` を付けます。Mid-level なら `difficulty: medium`、Senior なら `difficulty: hard`、Senior+ なら `difficulty: expert` です。なお、これらの `difficulty:` ラベルは GitHub の組み込みではないので、**事前にリポジトリ側で 1 度だけ作っておく必要があります**。作っていないと GitHub が暗黙のうちにラベルを落とします。
+2. `add_labels` - こちらも POST でラベルを追加します。`SKILL_LABELS` というマッピングがあり、評価結果を適切なラベルに変換します。もしエージェントが「Junior」と言ったら、`good first issue` と `difficulty: easy` を付けます。Mid-level なら `difficulty: medium`、Senior なら `difficulty: hard`、Senior+ なら `difficulty: expert` です。なお、これらの `difficulty:` ラベルは GitHub の組み込みではないので、**事前にリポジトリ側で 1 度だけ作っておく必要があります** (`bash presenter-resources/setup-demo-labels.sh <owner>/<repo>` で一括作成可能)。作っていないと GitHub API が 422 を返し、コメントは投稿されてもラベルだけ無音で失敗します。なお、日本語モード (`LANG=ja APP_LANG=ja`) では agent が「**推奨スキルレベル**: ミドル」のように出力しますが、`SKILL_LEVEL_ALIASES` で英語キー (`mid-level`) にマップしているので、付与されるラベル自体は EN/JA どちらでも共通 (`difficulty: medium`) になります。
 
 3. `PostAnalysisRequest` - POST 本文用の Pydantic モデルです。フロントエンドは owner、repo、issue number、それから解析結果全文を送ります。
 

@@ -53,6 +53,26 @@ copilot --version  # confirm it works
 - `src/static/styles.css` - チャットバブルのスタイリング
 - `src/static/app.js` - `/analyse/stream` SSE エンドポイントに接続し、ツール呼び出しと Markdown を描画
 
+### 5. デモ用リポジトリのラベル事前作成 (フェーズ 6a で必須)
+
+`app_final.py` の `SKILL_LABELS` は `difficulty: easy / medium / hard / expert` というラベルを Issue に付与します。これらは GitHub の組み込みラベルではないため、**コメント投稿先のリポジトリで事前に 1 度だけ作っておく必要があります**。作らないと GitHub API は 422 を返し、ラベル付与だけ失敗します (コメント投稿自体は成功します)。
+
+付属の `setup-demo-labels.sh` を 1 回流すだけで OK です:
+
+```bash
+bash presenter-resources/setup-demo-labels.sh <owner>/<repo>
+# 例:
+bash presenter-resources/setup-demo-labels.sh ChibaYuki347/demo_project_with_issues
+```
+
+作成されるラベル:
+- `difficulty: easy` (緑) — junior 向け
+- `difficulty: medium` (黄) — mid-level 向け
+- `difficulty: hard` (橙) — senior 向け
+- `difficulty: expert` (赤) — senior+ / チーム対応
+- `good first issue` (組み込み) — 通常は元から存在
+
+
 ### 5. テストに使う Issue URL を用意
 
 ライブデモで使うために、GitHub Issue URL を 1〜2 件ブックマークしておきます (ほどよい複雑さのもの)。
