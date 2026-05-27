@@ -149,7 +149,7 @@ Write: hello_world_streaming() function, update __main__ to support hello-stream
 >
 > 配信前のセットアップ (1 回だけ):
 > 1. `app_final.py:95` (`if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint**
-> 2. 式: `📡 type={event.type.value} | data={repr(event.data)[:80]}` (**波括弧**で式を囲む。`${...}` や `f"..."` は NG)
+> 2. 式: `type={event.type.value} | data={repr(event.data)[:80]}` (**波括弧**で式を囲む。`${...}` や `f"..."` は NG)
 > 3. 余白のアイコンが **◆ 赤いひし形** になっていることを確認 (● 赤い丸は通常 Breakpoint)
 > 4. `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選択。この config は `console: "internalConsole"` にしてあるので、アプリの `print()` と Logpoint の両方が Debug Console に集約されます。
 >
@@ -157,8 +157,22 @@ Write: hello_world_streaming() function, update __main__ to support hello-stream
 > - まず通常実行 (`python app.py hello-stream`) で「画面の見た目は `hello` とほぼ同じ」を確認
 > - 次に **F5** (`Run > Start Debugging`) でデバッグ起動。**▶ Run Python File ボタンや `Ctrl+F5` (Run Without Debugging) ではデバッガが attach せず Logpoint は発火しません**
 > - **Debug Console パネル** (`View > Debug Console` / `Ctrl+Shift+Y`) を開いておく
-> - 出力は同じだが Debug Console に `assistant.message` が 10 件前後、最後に `session.idle` が流れる
-> - 「`send_and_wait` も中ではこれらを全部受けてるけど、内部で集約して 1 個の文字列にしてから返してくれてるだけ。`on_event` はその粒度を**そのまま自分の手に渡してくれる**ので、後でブラウザに SSE で転送する (フェーズ 5) ことができる」と結ぶ
+> - Debug Console に **13 個前後**のイベントが流れる (送信メッセージ 1 個に対して)
+>
+> **何を語るか — トークン単位ではなく「ライフサイクル」を見せる**: `assistant.message` は実は**メッセージ 1 個に対して 1 回**しか発火しません。代わりに見せるべきは `send_and_wait` だと隠れる **SDK 内部のパイプライン**です:
+>
+> | イベント | 強調する一言 |
+> |---|---|
+> | `session.skills_loaded` | 「Copilot SDK は **MCP スキル**を動的ロードする」 |
+> | `system.message` | 「フェーズ 4 で書く SYSTEM_PROMPT はここで注入される」 |
+> | `session.tools_updated` | 「フェーズ 3 の `@define_tool` で書いたツールはここに乗る」 |
+> | `user.message` | 「自分の入力もイベント。履歴を全部再現できる」 |
+> | `session.usage_info` | 「12013/64000 tokens 消費 → コスト/制限を監視できる」 |
+> | `assistant.usage` | 「`api_call_id` でログ突き合わせ可能」 |
+> | `assistant.message` | 「応答本体。**`send_and_wait` で受け取れるのはこの 1 件の content だけ**」 |
+> | `session.idle` | 「`done.wait()` が解放される合図」 |
+>
+> 締めのメッセージ: 「**`on_event` は SDK の中で起きていることを全部見せてくれる窓**です。シンプルに答えだけ欲しいなら `send_and_wait`、UI を作る/ツール呼び出しをライブ表示する/トークン使用量を可視化するなど **観測性** が要るなら `on_event`。フェーズ 5 の Web UI はこれら全部を SSE でブラウザに転送します」
 >
 > ブレークポイント (同じ行) を使えば「event オブジェクトの中身を覗く → Continue で次のイベント → また覗く」という対話的な見せ方もできます。Variables パネルや Debug Console で `event.type.value` / `event.data` を直接叩けるので、SDK の知識ゼロでも構造が伝わります。
 >

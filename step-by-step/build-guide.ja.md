@@ -226,20 +226,34 @@ python app.py hello-stream
 >
 > 1. **VS Code Logpoint (おすすめ)**: `on_event` の中 (例えば `if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint** → 次の式を入れる:
 >    ```
->    📡 type={event.type.value} | data={repr(event.data)[:80]}
+>    type={event.type.value} | data={repr(event.data)[:80]}
 >    ```
 >    起動は **必ず F5** (`Run > Start Debugging`) — `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選ぶ。**ターミナルから `python` を直接叩いたり ▶ Run Python File ボタンを使うとデバッガが attach せず Logpoint は発火しません**。`Ctrl+F5` (Run Without Debugging) も NG。
 >    Logpoint の出力は **Debug Console** (`View > Debug Console` / `Ctrl+Shift+Y`) に出ます。上記 launch config は `"console": "internalConsole"` にしてあるので、アプリの `print()` 出力 (`...`) も同じ Debug Console に集約されます。
 > 2. **ブレークポイント**: 同じ行にブレークポイントを打って F5。停止したら Variables パネルで `event.type`、`event.data.content` を展開して構造を見せる。Continue 連打でイベントが次々来ることを実演。
 > 3. **Debug Console で REPL**: 一時停止中に Debug Console で `event.type.value` や `dir(event.data)` をタイプ。「SDK のオブジェクト構造はデバッガで探れる」というメッセージにもなる。
 >
+> **何を見せるか — 出力されるイベント一覧 (送信メッセージ 1 個あたり 13 個のイベント)**: 重要なのは「`assistant.message` がトークン単位で流れるわけではない」点です。実際には **メッセージ 1 個あたり 1 回**しか発火しません。代わりに見せるべきは、`send_and_wait` だと隠れてしまう **SDK 内部のライフサイクル**です。
+>
+> | イベント | 強調する一言 |
+> |---|---|
+> | `session.skills_loaded` | 「Copilot SDK は **MCP スキル**を動的ロードする」 |
+> | `system.message` | 「フェーズ 4 で書く SYSTEM_PROMPT はここで注入される」 |
+> | `session.tools_updated` | 「フェーズ 3 の `@define_tool` で書いたツールはここに乗る」 |
+> | `user.message` | 「自分の入力もイベント。会話履歴を全部イベントで再現できる」 |
+> | `assistant.turn_start` | 「ツール呼び出しがあると turn が複数回ループする」 |
+> | `session.usage_info` | 「12013/64000 tokens 消費 → コスト・制限を監視できる」 |
+> | `assistant.usage` | 「`api_call_id` でログ突き合わせ可能」 |
+> | `assistant.message` | 「応答本体。**`send_and_wait` で受け取れるのはこの 1 件の `content` だけ**」 |
+> | `session.idle` | 「`done.wait()` が解放される合図」 |
+>
+> 締めのメッセージ: **「`on_event` は SDK の中で起きていることを全部見せてくれる窓。シンプルに答えだけ欲しいなら `send_and_wait`、観測性が要るなら `on_event`。フェーズ 5 の Web UI はこれら全部を SSE でブラウザに転送します」**
+>
 > **トラブルシュート**: Logpoint を仕込んだのに Debug Console に何も出ない場合は次を確認:
 > - 余白のアイコンが **◆ 赤いひし形** か (● 赤い丸だと通常 Breakpoint。右クリック → Edit Breakpoint → Log Message を選び直す)
 > - 起動方法が **F5** か (Ctrl+F5 や ▶ ボタンは NG)
 > - **Debug Console パネル**を見ているか (ターミナルパネルではない)
 > - 式の波括弧が `{event.type.value}` か (`${...}` や `f"..."` は NG)
->
-> 配信前に Logpoint を 1 個セットしておき、本番で **「同じ出力に見えるけど Debug Console を見ると...」** という流れにすると、`send_and_wait` と `on_event` の差が一発で伝わります。
 
 ---
 
