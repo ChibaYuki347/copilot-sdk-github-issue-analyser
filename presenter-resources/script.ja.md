@@ -149,15 +149,20 @@ Write: hello_world_streaming() function, update __main__ to support hello-stream
 >
 > 配信前のセットアップ (1 回だけ):
 > 1. `app_final.py:95` (`if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint**
-> 2. 式: `📡 type={event.type.value} | data={repr(event.data)[:80]}`
-> 3. `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選択
+> 2. 式: `📡 type={event.type.value} | data={repr(event.data)[:80]}` (**波括弧**で式を囲む。`${...}` や `f"..."` は NG)
+> 3. 余白のアイコンが **◆ 赤いひし形** になっていることを確認 (● 赤い丸は通常 Breakpoint)
+> 4. `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選択。この config は `console: "internalConsole"` にしてあるので、アプリの `print()` と Logpoint の両方が Debug Console に集約されます。
 >
 > 本番デモ手順:
 > - まず通常実行 (`python app.py hello-stream`) で「画面の見た目は `hello` とほぼ同じ」を確認
-> - 次に **F5** でデバッグ起動 → 出力は同じだが Debug Console に `assistant.message` が 10 件前後、最後に `session.idle` が流れる
+> - 次に **F5** (`Run > Start Debugging`) でデバッグ起動。**▶ Run Python File ボタンや `Ctrl+F5` (Run Without Debugging) ではデバッガが attach せず Logpoint は発火しません**
+> - **Debug Console パネル** (`View > Debug Console` / `Ctrl+Shift+Y`) を開いておく
+> - 出力は同じだが Debug Console に `assistant.message` が 10 件前後、最後に `session.idle` が流れる
 > - 「`send_and_wait` も中ではこれらを全部受けてるけど、内部で集約して 1 個の文字列にしてから返してくれてるだけ。`on_event` はその粒度を**そのまま自分の手に渡してくれる**ので、後でブラウザに SSE で転送する (フェーズ 5) ことができる」と結ぶ
 >
 > ブレークポイント (同じ行) を使えば「event オブジェクトの中身を覗く → Continue で次のイベント → また覗く」という対話的な見せ方もできます。Variables パネルや Debug Console で `event.type.value` / `event.data` を直接叩けるので、SDK の知識ゼロでも構造が伝わります。
+>
+> Logpoint が出ないとき: ◆ ひし形か / F5 で起動したか / Debug Console を見ているか / 式が `{...}` の波括弧か、この 4 点をチェックしてください。
 
 ここでひとこと補足です。`send_and_wait` はシンプルな用途にはとても便利です。スクリプト、バッチ処理、とにかく答えだけ欲しい場面にはぴったりです。一方、イベントベースのアプローチは、UI を作るときや進捗を見せたいとき、あるいはエージェントがどのツールを呼んでいるかを見たいときに必要になります。用途に応じて使い分けてください。常にイベントが必要なわけではありません。
 

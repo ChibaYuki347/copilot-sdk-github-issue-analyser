@@ -39,7 +39,7 @@
             "request": "launch",
             "module": "app_final",
             "args": ["hello-stream"],
-            "console": "integratedTerminal",
+            "console": "internalConsole",
             "justMyCode": false,
             "cwd": "${workspaceFolder}"
         }

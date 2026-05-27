@@ -224,13 +224,20 @@ python app.py hello-stream
 
 > 🎬 **発表者向け Tip — `on_event` の中身を可視化する**: 短い質問だと出力が一瞬で終わり、`hello` との違いが分かりづらいです。コードを変えずに「裏で何が起きているか」を見せる 3 つの方法:
 >
-> 1. **VS Code Logpoint (おすすめ)**: `on_event` の 1 行目 (例えば `if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint** → 次の式を入れる:
+> 1. **VS Code Logpoint (おすすめ)**: `on_event` の中 (例えば `if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint** → 次の式を入れる:
 >    ```
 >    📡 type={event.type.value} | data={repr(event.data)[:80]}
 >    ```
->    `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選んで F5。出力は通常実行と同じだが、**Debug Console** に 10 個前後の `assistant.message` と最後の `session.idle` が流れる。「`send_and_wait` はこれらを内部で集約して 1 個の文字列として返すだけで、ストリーミングしているわけではない」という違いが視覚化できる。
+>    起動は **必ず F5** (`Run > Start Debugging`) — `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選ぶ。**ターミナルから `python` を直接叩いたり ▶ Run Python File ボタンを使うとデバッガが attach せず Logpoint は発火しません**。`Ctrl+F5` (Run Without Debugging) も NG。
+>    Logpoint の出力は **Debug Console** (`View > Debug Console` / `Ctrl+Shift+Y`) に出ます。上記 launch config は `"console": "internalConsole"` にしてあるので、アプリの `print()` 出力 (`...`) も同じ Debug Console に集約されます。
 > 2. **ブレークポイント**: 同じ行にブレークポイントを打って F5。停止したら Variables パネルで `event.type`、`event.data.content` を展開して構造を見せる。Continue 連打でイベントが次々来ることを実演。
 > 3. **Debug Console で REPL**: 一時停止中に Debug Console で `event.type.value` や `dir(event.data)` をタイプ。「SDK のオブジェクト構造はデバッガで探れる」というメッセージにもなる。
+>
+> **トラブルシュート**: Logpoint を仕込んだのに Debug Console に何も出ない場合は次を確認:
+> - 余白のアイコンが **◆ 赤いひし形** か (● 赤い丸だと通常 Breakpoint。右クリック → Edit Breakpoint → Log Message を選び直す)
+> - 起動方法が **F5** か (Ctrl+F5 や ▶ ボタンは NG)
+> - **Debug Console パネル**を見ているか (ターミナルパネルではない)
+> - 式の波括弧が `{event.type.value}` か (`${...}` や `f"..."` は NG)
 >
 > 配信前に Logpoint を 1 個セットしておき、本番で **「同じ出力に見えるけど Debug Console を見ると...」** という流れにすると、`send_and_wait` と `on_event` の差が一発で伝わります。
 
