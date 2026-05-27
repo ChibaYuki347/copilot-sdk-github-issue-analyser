@@ -127,12 +127,14 @@ Write: hello_world() function + temporary __main__ block
 では、ストリーミング版を書いてみましょう。同じ質問ですが、今度はトークンが 1 つずつ届く様子を見ます。
 
 > 📌 **upstream 65ce38b (2026-05-26) で更新**: 2a と同じく、`client.start()` 〜 `create_session(...)` は **プリフィル済**です。配信中に書くのは **イベントハンドラ + `session.send()` + `done.wait()` の塊**だけです。
+>
+> 🆕 **ja ブランチ独自改修 (2026-05-27)**: プリフィル済の `create_session(...)` に `streaming=True` が入っています。これによって SDK は応答を **`assistant.message_delta` イベントの列** (1 メッセージ = 76 chunk 前後) として返してくるようになり、本物のトークン単位ストリーミングが見られます。
 
 ここではパターンが少し変わります。`send_and_wait` の代わりに、`session.on()` でイベントハンドラを登録し、そのあと `session.send()` を呼びます。こちらはノンブロッキングで、リクエストを投げるだけです。実際の処理はイベントハンドラ側で行います。
 
 **[CODE HIGHLIGHT]** イベントハンドラの中を順に説明してください。
 
-- `assistant.message` - テキストの断片が届くたびに発火します。改行せずにその場で表示するので、ターミナル上で文字が流れていきます。
+- `assistant.message_delta` - **応答の 1 トークン分の chunk** が届くたびに発火します。`event.data.delta_content` に `'The'`, `' Git'`, `'Hub'` のような部分文字列が入っています。改行せずにその場で表示するので、ターミナル上で文字が流れていきます。
 - `session.idle` - これはエージェントの処理が終わった合図です。やることがなくなった状態ですね。`asyncio.Event` を使って、メイン側に「もう待たなくていい」と知らせます。
 
 この 2 つが、これから何度も使う 3 種類のイベントのうちの 2 つです。3 つ目の `tool.call` は、もう少しあとでエージェントがツールを使い始めたときに出てきます。
@@ -145,36 +147,38 @@ Write: hello_world_streaming() function, update __main__ to support hello-stream
 
 違いが分かりますよね。今度は全文が一気に出るのではなく、単語ごとに現れます。これが、あとで作るストリーミング UI の土台です。
 
-> 🎬 **発表者向け Tip — 短い答えだと差が出にくいときは Logpoint で裏側を見せる**: 「2 sentences」の質問だと一瞬で終わって `hello` との差が出にくいので、本番では **Debug Console** で `on_event` を通る全イベントを見せると効果的です。
+> 🎬 **発表者向け Tip — もっと「裏側」を見せたいときは Logpoint で全イベントを覗く**: ターミナルだけだと文字が流れるところしか見えませんが、**Debug Console** で `on_event` を通る全イベント (1 メッセージあたり 90 個近く) を見せると効果的です。
 >
 > 配信前のセットアップ (1 回だけ):
-> 1. `app_final.py:95` (`if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint**
+> 1. `app_final.py` の `if event.type.value == "assistant.message_delta":` の行の左余白を右クリック → **Add Logpoint**
 > 2. 式: `type={event.type.value} | data={repr(event.data)[:80]}` (**波括弧**で式を囲む。`${...}` や `f"..."` は NG)
 > 3. 余白のアイコンが **◆ 赤いひし形** になっていることを確認 (● 赤い丸は通常 Breakpoint)
 > 4. `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選択。この config は `console: "internalConsole"` にしてあるので、アプリの `print()` と Logpoint の両方が Debug Console に集約されます。
 >
 > 本番デモ手順:
-> - まず通常実行 (`python app.py hello-stream`) で「画面の見た目は `hello` とほぼ同じ」を確認
+> - まず通常実行 (`python app.py hello-stream`) で「文字が token chunk 単位で流れていく」を見せる
 > - 次に **F5** (`Run > Start Debugging`) でデバッグ起動。**▶ Run Python File ボタンや `Ctrl+F5` (Run Without Debugging) ではデバッガが attach せず Logpoint は発火しません**
 > - **Debug Console パネル** (`View > Debug Console` / `Ctrl+Shift+Y`) を開いておく
-> - Debug Console に **13 個前後**のイベントが流れる (送信メッセージ 1 個に対して)
+> - Debug Console に **約 90 個のイベント**が流れる (delta 76 個 + ライフサイクル 13 個 + その他)
 >
-> **何を語るか — トークン単位ではなく「ライフサイクル」を見せる**: `assistant.message` は実は**メッセージ 1 個に対して 1 回**しか発火しません。代わりに見せるべきは `send_and_wait` だと隠れる **SDK 内部のパイプライン**です:
+> **何を語るか — 2 つのストーリーを並べて語る**: ja ブランチでは `streaming=True` を入れたので、**トークン単位の delta ストリーム** と **SDK 内部のライフサイクル** の両方が同じ Debug Console に流れます:
 >
-> | イベント | 強調する一言 |
-> |---|---|
-> | `session.skills_loaded` | 「Copilot SDK は **MCP スキル**を動的ロードする」 |
-> | `system.message` | 「フェーズ 4 で書く SYSTEM_PROMPT はここで注入される」 |
-> | `session.tools_updated` | 「フェーズ 3 の `@define_tool` で書いたツールはここに乗る」 |
-> | `user.message` | 「自分の入力もイベント。履歴を全部再現できる」 |
-> | `session.usage_info` | 「12013/64000 tokens 消費 → コスト/制限を監視できる」 |
-> | `assistant.usage` | 「`api_call_id` でログ突き合わせ可能」 |
-> | `assistant.message` | 「応答本体。**`send_and_wait` で受け取れるのはこの 1 件の content だけ**」 |
-> | `session.idle` | 「`done.wait()` が解放される合図」 |
+> | イベント | 発火回数 | 強調する一言 |
+> |---|---|---|
+> | `session.skills_loaded` | 1 | 「Copilot SDK は **MCP スキル**を動的ロードする」 |
+> | `system.message` | 1 | 「フェーズ 4 で書く SYSTEM_PROMPT はここで注入される」 |
+> | `session.tools_updated` | 1 | 「フェーズ 3 の `@define_tool` で書いたツールはここに乗る」 |
+> | `user.message` | 1 | 「自分の入力もイベント。履歴を全部再現できる」 |
+> | `assistant.message_delta` | **76+** | 「★ ここが本物のトークンストリーミング。`delta_content` に `'The'`, `' Git'`, `'Hub'`, `' Cop'` のような chunk が入る」 |
+> | `assistant.streaming_delta` | 76+ | 「sub-agent 用の汎用 delta。`message_delta` と同時に流れる」 |
+> | `session.usage_info` | 1 | 「12013/64000 tokens 消費 → コスト/制限を監視できる」 |
+> | `assistant.usage` | 1 | 「`api_call_id` でログ突き合わせ可能」 |
+> | `assistant.message` | 1 | 「全 chunk を結合した完成版。`send_and_wait` で受け取れるのはこの 1 件だけ」 |
+> | `session.idle` | 1 | 「`done.wait()` が解放される合図」 |
 >
-> 締めのメッセージ: 「**`on_event` は SDK の中で起きていることを全部見せてくれる窓**です。シンプルに答えだけ欲しいなら `send_and_wait`、UI を作る/ツール呼び出しをライブ表示する/トークン使用量を可視化するなど **観測性** が要るなら `on_event`。フェーズ 5 の Web UI はこれら全部を SSE でブラウザに転送します」
+> 締めのメッセージ: 「**`streaming=True` を 1 行入れただけで、SDK は token chunk を `assistant.message_delta` として連続発火するようになります。`on_event` は SDK の中を全部見せてくれる窓** — トークンの流れも、ライフサイクルも、両方。シンプルに答えだけ欲しいなら `send_and_wait`、UI を作る/ツール呼び出しをライブ表示する/トークン使用量を可視化するなど **観測性** が要るなら `on_event`。フェーズ 5 の Web UI はこの delta を SSE でブラウザに転送します」
 >
-> ブレークポイント (同じ行) を使えば「event オブジェクトの中身を覗く → Continue で次のイベント → また覗く」という対話的な見せ方もできます。Variables パネルや Debug Console で `event.type.value` / `event.data` を直接叩けるので、SDK の知識ゼロでも構造が伝わります。
+> ブレークポイント (同じ行) を使えば「event オブジェクトの中身を覗く → Continue で次の chunk → また覗く」という対話的な見せ方もできます。Variables パネルや Debug Console で `event.data.delta_content` を直接叩けるので、SDK の知識ゼロでも構造が伝わります。
 >
 > Logpoint が出ないとき: ◆ ひし形か / F5 で起動したか / Debug Console を見ているか / 式が `{...}` の波括弧か、この 4 点をチェックしてください。
 

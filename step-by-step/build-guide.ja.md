@@ -176,6 +176,8 @@ python app.py hello
 > **トーキングポイント**: 「今のは動きましたが、レスポンス全体を待っていました。トークンがリアルタイムで届くのを見たいとしたらどうでしょうか。そして後では、エージェントがどのツールを呼び出しているかも見たいはずです。そこでイベントが出てきます。」
 
 > 📌 **upstream 65ce38b (2026-05-26) で更新**: 2a と同じく、**`client.start()` 〜 `create_session(...)`** はプリフィルされています。配信中に書くのは「**イベントハンドラの登録 → send → done.wait()**」の塊です。
+>
+> 🆕 **ja ブランチ独自改修 (2026-05-27)**: `create_session(streaming=True)` を **プリフィル側に**入れてあります。これによって SDK は応答を **`assistant.message_delta` イベントの列**として送ってきます (1 メッセージ = 70 個以上の chunk)。配信で書くイベントハンドラは `assistant.message_delta` を扱う形になります。
 
 ### 書くコード
 
@@ -191,6 +193,7 @@ async def hello_world_streaming():
         model="gpt-4.1",
         on_permission_request=PermissionHandler.approve_all,
         github_token=token,
+        streaming=True,  # ★ トークン単位の delta イベントを有効化
     )
     # ↑↑↑ ここまでプリフィル ↑↑↑
 
@@ -198,8 +201,9 @@ async def hello_world_streaming():
     done = asyncio.Event()
 
     def on_event(event):
-        if event.type.value == "assistant.message":
-            print(event.data.content, end="", flush=True)
+        if event.type.value == "assistant.message_delta":
+            # 1 トークンずつ届く chunk をその場で表示
+            print(event.data.delta_content, end="", flush=True)
         elif event.type.value == "session.idle":
             done.set()
 
@@ -218,36 +222,38 @@ async def hello_world_streaming():
 python app.py hello-stream
 ```
 
-> **キーコンセプト**: 知っておくべきイベント種別は 3 つです — `assistant.message` (内容のトークン)、`tool.call` (エージェントがツールを使った)、`session.idle` (エージェントが完了した) です。これが、この後の配信で使うパターンです。
+> **キーコンセプト**: 知っておくべきイベント種別は 3 つです — `assistant.message_delta` (トークン chunk、`streaming=True` で有効化)、`tool.call` (エージェントがツールを使った)、`session.idle` (エージェントが完了した) です。これが、この後の配信で使うパターンです。
 
 > 💡 **コールアウト**: 「`send_and_wait()` はシンプルなケースには最適です。イベントベースのアプローチは複雑さを増しますが、ストリーミング UI、進捗インジケーター、そしてエージェントがどのツールを呼び出しているかを見るには必要です。ユースケースに合った方を選んでください。」
 
-> 🎬 **発表者向け Tip — `on_event` の中身を可視化する**: 短い質問だと出力が一瞬で終わり、`hello` との違いが分かりづらいです。コードを変えずに「裏で何が起きているか」を見せる 3 つの方法:
+> 🎬 **発表者向け Tip — `on_event` の中身を可視化する**: 出力をターミナルで見るとほぼ一瞬で `hello` と区別がつきません。コードを変えずに「裏で何が起きているか」を見せる 3 つの方法:
 >
-> 1. **VS Code Logpoint (おすすめ)**: `on_event` の中 (例えば `if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint** → 次の式を入れる:
+> 1. **VS Code Logpoint (おすすめ)**: `on_event` の中 (例えば `if event.type.value == "assistant.message_delta":` の行) の左余白を右クリック → **Add Logpoint** → 次の式を入れる:
 >    ```
 >    type={event.type.value} | data={repr(event.data)[:80]}
 >    ```
 >    起動は **必ず F5** (`Run > Start Debugging`) — `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選ぶ。**ターミナルから `python` を直接叩いたり ▶ Run Python File ボタンを使うとデバッガが attach せず Logpoint は発火しません**。`Ctrl+F5` (Run Without Debugging) も NG。
 >    Logpoint の出力は **Debug Console** (`View > Debug Console` / `Ctrl+Shift+Y`) に出ます。上記 launch config は `"console": "internalConsole"` にしてあるので、アプリの `print()` 出力 (`...`) も同じ Debug Console に集約されます。
-> 2. **ブレークポイント**: 同じ行にブレークポイントを打って F5。停止したら Variables パネルで `event.type`、`event.data.content` を展開して構造を見せる。Continue 連打でイベントが次々来ることを実演。
+> 2. **ブレークポイント**: 同じ行にブレークポイントを打って F5。停止したら Variables パネルで `event.type`、`event.data.delta_content` を展開して chunk が 1 トークンずつ来ている様子を見せる。Continue 連打で次の chunk へ。
 > 3. **Debug Console で REPL**: 一時停止中に Debug Console で `event.type.value` や `dir(event.data)` をタイプ。「SDK のオブジェクト構造はデバッガで探れる」というメッセージにもなる。
 >
-> **何を見せるか — 出力されるイベント一覧 (送信メッセージ 1 個あたり 13 個のイベント)**: 重要なのは「`assistant.message` がトークン単位で流れるわけではない」点です。実際には **メッセージ 1 個あたり 1 回**しか発火しません。代わりに見せるべきは、`send_and_wait` だと隠れてしまう **SDK 内部のライフサイクル**です。
+> **何を見せるか — 2 つのストーリーを並べて語る**: `streaming=True` を入れた今回の構成は、**トークン単位の delta ストリーム** と **SDK 内部のライフサイクル** の両方が同じ Debug Console に流れます。「2 sentences」の応答 1 個に対して合計 **約 90 イベント** (delta 76+ + ライフサイクル 13)。
 >
-> | イベント | 強調する一言 |
-> |---|---|
-> | `session.skills_loaded` | 「Copilot SDK は **MCP スキル**を動的ロードする」 |
-> | `system.message` | 「フェーズ 4 で書く SYSTEM_PROMPT はここで注入される」 |
-> | `session.tools_updated` | 「フェーズ 3 の `@define_tool` で書いたツールはここに乗る」 |
-> | `user.message` | 「自分の入力もイベント。会話履歴を全部イベントで再現できる」 |
-> | `assistant.turn_start` | 「ツール呼び出しがあると turn が複数回ループする」 |
-> | `session.usage_info` | 「12013/64000 tokens 消費 → コスト・制限を監視できる」 |
-> | `assistant.usage` | 「`api_call_id` でログ突き合わせ可能」 |
-> | `assistant.message` | 「応答本体。**`send_and_wait` で受け取れるのはこの 1 件の `content` だけ**」 |
-> | `session.idle` | 「`done.wait()` が解放される合図」 |
+> | イベント | 発火回数 (目安) | 強調する一言 |
+> |---|---|---|
+> | `session.skills_loaded` | 1 | 「Copilot SDK は **MCP スキル**を動的ロードする」 |
+> | `system.message` | 1 | 「フェーズ 4 で書く SYSTEM_PROMPT はここで注入される」 |
+> | `session.tools_updated` | 1 | 「フェーズ 3 の `@define_tool` で書いたツールはここに乗る」 |
+> | `user.message` | 1 | 「自分の入力もイベント。会話履歴を全部イベントで再現できる」 |
+> | `assistant.turn_start` | 1 | 「ツール呼び出しがあると turn が複数回ループする」 |
+> | `assistant.message_delta` | **76+** | 「★ ここが本物のトークンストリーミング。`delta_content` に `'The'`, `' Git'`, `'Hub'`, `' Cop'` のような token chunk が入ってくる」 |
+> | `assistant.streaming_delta` | 76+ | 「sub-agent 用の汎用 delta。`message_delta` と同タイミングで並走する」 |
+> | `session.usage_info` | 1 | 「12013/64000 tokens 消費 → コスト・制限を監視できる」 |
+> | `assistant.usage` | 1 | 「`api_call_id` でログ突き合わせ可能」 |
+> | `assistant.message` | 1 | 「全 chunk を結合した完成版。`send_and_wait` で受け取れるのはこの 1 件だけ」 |
+> | `session.idle` | 1 | 「`done.wait()` が解放される合図」 |
 >
-> 締めのメッセージ: **「`on_event` は SDK の中で起きていることを全部見せてくれる窓。シンプルに答えだけ欲しいなら `send_and_wait`、観測性が要るなら `on_event`。フェーズ 5 の Web UI はこれら全部を SSE でブラウザに転送します」**
+> 締めのメッセージ: **「`streaming=True` を 1 行入れただけで、SDK は token chunk を `assistant.message_delta` として連続発火するようになります。`on_event` は SDK の中を全部見せてくれる窓 — トークンの流れも、ライフサイクルも、両方。シンプルに答えだけ欲しいなら `send_and_wait`、観測性が要るなら `on_event`。フェーズ 5 の Web UI はこの delta を SSE でブラウザに転送します」**
 >
 > **トラブルシュート**: Logpoint を仕込んだのに Debug Console に何も出ない場合は次を確認:
 > - 余白のアイコンが **◆ 赤いひし形** か (● 赤い丸だと通常 Breakpoint。右クリック → Edit Breakpoint → Log Message を選び直す)
@@ -844,7 +850,7 @@ LANG=ja python app.py <日本語 issue の URL>
 
 > 扱った 7 つのコンセプトを振り返ります:
 > 1. **`send_and_wait()`** - レスポンスを得る最もシンプルな方法
-> 2. **イベント** - ストリーミングのための `assistant.message`, `tool.call`, `session.idle`
+> 2. **イベント** - ストリーミングのための `assistant.message_delta` (トークン chunk、`streaming=True` で有効化)・`assistant.message` (完成版)・`tool.call`・`session.idle`
 > 3. **`@define_tool`** - 関数をエージェントに使えるようにすること
 > 4. **システムプロンプト** - エージェントの振る舞いを形作ること
 > 5. **SSE ストリーミング** - Web UI でのリアルタイムのエージェント出力

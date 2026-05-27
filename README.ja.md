@@ -68,7 +68,7 @@ GitHub Copilot SDK の機能を実演するために、**60 分のライブ配�
 - **`CopilotClient`** - セッション作成とライフサイクル管理
 - **`@define_tool`** - Pydantic パラメータスキーマを使ったカスタムツール定義
 - **エージェント型のツール呼び出し** - Copilot がコンテキストを集めるために自律的に Python 関数を呼び出します
-- **ストリーミングイベント処理** - `assistant.message`、`tool.call`、`session.idle` イベントのリアルタイム処理
+- **ストリーミングイベント処理** - `assistant.message_delta` (`streaming=True` でトークン単位 chunk)・`assistant.message`・`tool.call`・`session.idle` イベントのリアルタイム処理
 - **マルチターンのツールループ** - エージェントは最終評価を出す前に複数ラウンドのツール呼び出しを行います
 
 ---

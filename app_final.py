@@ -64,11 +64,17 @@ async def hello_world():
 
 
 # =================================================================
-# PHASE 2b — Streaming with Events
+# PHASE 2b — Streaming with Events (token-by-token)
 #
-# Same thing, but now we see tokens arrive in real-time.
-# This is the pattern we'll use for the rest of the stream.
-# Event types: assistant.message, tool.call, session.idle
+# Same conversation, but now we see tokens arrive in real-time.
+# Two things are happening at once:
+#   1. The SDK fires lifecycle events (turn_start, usage_info, idle, ...)
+#      so you can watch what the session is doing internally.
+#   2. With streaming=True, the assistant content arrives as a stream of
+#      assistant.message_delta events — one chunk per token — instead of
+#      a single assistant.message at the end.
+#
+# This is the event-loop pattern we'll reuse for the rest of the stream.
 # =================================================================
 
 async def hello_world_streaming():
@@ -81,6 +87,10 @@ async def hello_world_streaming():
         model="gpt-4.1",
         on_permission_request=PermissionHandler.approve_all,
         github_token=token,
+        # streaming=True opts in to assistant.message_delta events.
+        # Without this flag the SDK emits a single assistant.message at the end.
+        # See: https://github.com/github/copilot-sdk/blob/main/python/README.md (Streaming)
+        streaming=True,
     )
 
     # The SDK emits events as the session runs. We listen for:
@@ -89,12 +99,15 @@ async def hello_world_streaming():
     def on_event(event):
         """
             Handle events emitted by the session. We look for:
-            - assistant.message: new tokens from the assistant (print them)
-            - session.idle: the session has finished processing (set the done event)
-        """ 
-        if event.type.value == "assistant.message":
-            # Print tokens as they arrive, without a newline, and flush to ensure real-time display.
-            print(event.data.content, end="", flush=True)
+            - assistant.message_delta: a single chunk (token) of the response.
+              With streaming=True these arrive continuously while the model
+              is still generating — print each delta_content as it comes in.
+            - session.idle: the session has finished processing (set the done event).
+        """
+        if event.type.value == "assistant.message_delta":
+            # Print each token-sized chunk as it arrives, without a newline,
+            # and flush so it shows up in the terminal immediately.
+            print(event.data.delta_content, end="", flush=True)
         elif event.type.value == "session.idle":
             done.set()
 
