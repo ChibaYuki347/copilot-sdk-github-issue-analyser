@@ -22,6 +22,26 @@
             "justMyCode": true,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Hello (final) — send_and_wait",
+            "type": "python",
+            "request": "launch",
+            "module": "app_final",
+            "args": ["hello"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Hello Stream (final) — debug on_event",
+            "type": "python",
+            "request": "launch",
+            "module": "app_final",
+            "args": ["hello-stream"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

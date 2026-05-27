@@ -145,6 +145,20 @@ Write: hello_world_streaming() function, update __main__ to support hello-stream
 
 違いが分かりますよね。今度は全文が一気に出るのではなく、単語ごとに現れます。これが、あとで作るストリーミング UI の土台です。
 
+> 🎬 **発表者向け Tip — 短い答えだと差が出にくいときは Logpoint で裏側を見せる**: 「2 sentences」の質問だと一瞬で終わって `hello` との差が出にくいので、本番では **Debug Console** で `on_event` を通る全イベントを見せると効果的です。
+>
+> 配信前のセットアップ (1 回だけ):
+> 1. `app_final.py:95` (`if event.type.value == "assistant.message":` の行) の左余白を右クリック → **Add Logpoint**
+> 2. 式: `📡 type={event.type.value} | data={repr(event.data)[:80]}`
+> 3. `.vscode/launch.json` の **"Hello Stream (final) — debug on_event"** を選択
+>
+> 本番デモ手順:
+> - まず通常実行 (`python app.py hello-stream`) で「画面の見た目は `hello` とほぼ同じ」を確認
+> - 次に **F5** でデバッグ起動 → 出力は同じだが Debug Console に `assistant.message` が 10 件前後、最後に `session.idle` が流れる
+> - 「`send_and_wait` も中ではこれらを全部受けてるけど、内部で集約して 1 個の文字列にしてから返してくれてるだけ。`on_event` はその粒度を**そのまま自分の手に渡してくれる**ので、後でブラウザに SSE で転送する (フェーズ 5) ことができる」と結ぶ
+>
+> ブレークポイント (同じ行) を使えば「event オブジェクトの中身を覗く → Continue で次のイベント → また覗く」という対話的な見せ方もできます。Variables パネルや Debug Console で `event.type.value` / `event.data` を直接叩けるので、SDK の知識ゼロでも構造が伝わります。
+
 ここでひとこと補足です。`send_and_wait` はシンプルな用途にはとても便利です。スクリプト、バッチ処理、とにかく答えだけ欲しい場面にはぴったりです。一方、イベントベースのアプローチは、UI を作るときや進捗を見せたいとき、あるいはエージェントがどのツールを呼んでいるかを見たいときに必要になります。用途に応じて使い分けてください。常にイベントが必要なわけではありません。
 
 ---
